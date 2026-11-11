@@ -1,174 +1,15 @@
-"""Build Blender materials from resolved UE material parameters."""
+"""Clothing shaders: layered (M_Character_8Layers_Master / M_Character_Layered,
+incl. decals and number decals), preview, lace, lace skirt, feather,
+attachment, glass, hologram, plastic sheet, team colour."""
 
 import math
 
 import bpy
 
-from . import defaults, groups
-from .nodes import NodeBuilder, _is_socket
-from .ue_assets import asset_name
-
-NEUTRAL = {
-    "normal": (0.5, 0.5, 1.0, 1.0),
-    "mask": (0.5, 0.5, 0.5, 1.0),
-    "color": (1.0, 1.0, 1.0, 1.0),
-    "black": (0.0, 0.0, 0.0, 1.0),
-}
-
-
-class Ctx:
-    """Everything one material build needs."""
-
-    def __init__(self, mat, params, finder, log, detail_uv=None):
-        self.mat = mat
-        # Name of the mesh's second UV channel. Its texel density is uniform
-        # (50 cm per UV unit on every mesh measured), and the layered shader's
-        # detail textures (fabric normals, roughness/wear masks, colour
-        # textures, patterns, hue noise) tile on it. Colour masks, mesh
-        # normals, OCM and decals stay on the first channel.
-        self.detail_uv = detail_uv
-        self._duv = None
-        self.p = params
-        self.finder = finder
-        self.log = log
-        tree = mat.node_tree
-        tree.nodes.clear()
-        self.nb = NodeBuilder(tree)
-        self._uv = None
-        self._scaled = {}
-        self._tex = {}
-        self._missing = set()
-
-    # ── UVs ──────────────────────────────────────────────────────────────────
-    def uv(self, scale=1.0, detail=False):
-        if detail and self.detail_uv:
-            if self._duv is None:
-                n = self.nb.node("ShaderNodeUVMap", "Detail UV (2nd channel)")
-                n.uv_map = self.detail_uv
-                self._duv = n.outputs["UV"]
-            base = self._duv
-        else:
-            if self._uv is None:
-                self._uv = self.nb.node("ShaderNodeTexCoord").outputs["UV"]
-            base = self._uv
-        scale = round(float(scale), 5)
-        if scale == 1.0:
-            return base
-        key = (scale, base is self._duv)
-        if key not in self._scaled:
-            self._scaled[key] = self.nb.vmath("SCALE", base, scale=scale,
-                                              label=f"{'Detail ' if base is self._duv else ''}UV x{scale:g}")
-        return self._scaled[key]
-
-    # ── images ───────────────────────────────────────────────────────────────
-    def image(self, path, data=True, packed=False):
-        img = bpy.data.images.load(path, check_existing=True)
-        try:
-            img.colorspace_settings.name = "Non-Color" if data else "sRGB"
-        except TypeError:
-            pass
-        if packed:
-            img.alpha_mode = "CHANNEL_PACKED"
-        return img
-
-    def tex(self, object_path, data=True, packed=False, scale=1.0, label=None,
-            vector=None, extension="REPEAT", detail=False):
-        """Image node for a texture object path, or None if it can't be found."""
-        if not object_path:
-            return None
-        if asset_name(object_path).lower() in defaults.NULL_TEXTURES:
-            return None
-        key = (object_path, round(scale, 5), id(vector), extension, detail)
-        if key in self._tex:
-            return self._tex[key]
-        path = self.finder.find_texture(object_path)
-        if not path:
-            self._warn_missing(asset_name(object_path), object_path)
-            self._tex[key] = None
-            return None
-        n = self._image_node(path, data, packed, label or asset_name(object_path), extension)
-        self.nb.feed(n.inputs["Vector"], vector if vector is not None else self.uv(scale, detail))
-        self._tex[key] = n
-        return n
-
-    def slice(self, array_path, index, data=True, scale=1.0, label=None):
-        """Image node for one slice of a Texture2DArray."""
-        if not array_path:
-            return None
-        index = int(round(index))
-        key = ("slice", array_path, index, round(scale, 5))
-        if key in self._tex:
-            return self._tex[key]
-        path = self.finder.find_array_slice(array_path, index)
-        if not path:
-            self._warn_missing(f"{asset_name(array_path)}_LAYER{index}", array_path)
-            self._tex[key] = None
-            return None
-        n = self._image_node(path, data, False, label or f"{asset_name(array_path)} [{index}]", "REPEAT")
-        self.nb.feed(n.inputs["Vector"], self.uv(scale, detail=True))
-        self._tex[key] = n
-        return n
-
-    def red(self, node):
-        """R channel of an image node. Mask textures may be exported red-only,
-        and feeding a colour into a float socket would average in G and B."""
-        key = ("red", node.name)
-        if key not in self._tex:
-            self._tex[key] = self.nb.separate(node.outputs["Color"])[0]
-        return self._tex[key]
-
-    def _image_node(self, path, data, packed, label, extension):
-        n = self.nb.node("ShaderNodeTexImage", label)
-        n.image = self.image(path, data, packed)
-        n.extension = extension
-        n.hide = False
-        return n
-
-    def _warn_missing(self, name, object_path):
-        if name in self._missing:
-            return
-        self._missing.add(name)
-        self.log.warn(f"  Texture not found: {name} (game path {object_path}). Using a neutral value.")
-
-    # ── output ───────────────────────────────────────────────────────────────
-    def bsdf(self):
-        n = self.nb.node("ShaderNodeBsdfPrincipled")
-        out = self.nb.node("ShaderNodeOutputMaterial")
-        self.nb.feed(out.inputs["Surface"], n.outputs[0])
-        return n
-
-    def normal_map(self, color):
-        n = self.nb.node("ShaderNodeNormalMap")
-        try:
-            n.convention = "DIRECTX"      # Unreal normal maps are DirectX (green down)
-        except (AttributeError, TypeError):
-            # Older Blender: flip green by hand.
-            r, g, b = self.nb.separate(color)
-            color = self.nb.combine(r, self.nb.sub(1.0, g), b)
-        self.nb.feed(n.inputs["Color"], color)
-        return n.outputs["Normal"]
-
-    def finish(self, two_sided=True, blended=False):
-        """blended=True for see-through surfaces (glass, plastic sheets)."""
-        m = self.mat
-        try:
-            m.surface_render_method = "BLENDED" if blended else "DITHERED"
-        except (AttributeError, TypeError):
-            m.blend_method = "BLEND" if blended else "HASHED"
-        # Always off: mirrored parts (e.g. the left boot of a pair) come in with
-        # reversed faces, and culling would hide their outside.
-        m.use_backface_culling = False
-        m["ft_two_sided"] = bool(two_sided)
-        self.nb.layout()
-
-
-def _col(v, a=None):
-    return (v[0], v[1], v[2], 1.0 if a is None else a)
-
-
-def _out(node, name="Color", fallback=None):
-    return node.outputs[name] if node is not None else fallback
-
+from .. import defaults, groups
+from ..nodes import _is_socket
+from ..ue_assets import asset_name
+from .common import NEUTRAL, _col, _out, _packed_normal, _normal_tex, _fresnel_ramp
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Layered character shader (M_Character_8Layers_Master / M_Character_Layered)
@@ -648,63 +489,6 @@ def build_lace_skirt(ctx):
     ctx.finish(two_sided=p.two_sided if p.two_sided is not None else True)
 
 
-_SUFFIX_ROLES = [
-    (("_basecolor", "_c", "_ca", "_d", "_diffuse", "_albedo"), "color"),
-    (("_normal", "_n"), "normal"),
-    (("_nom", "_nxm", "_nem", "_nam", "_nx", "_noh"), "packed_normal"),
-    (("_m", "_mask"), "mask"),
-]
-
-
-def _role(name):
-    low = name.lower()
-    for sufs, role in _SUFFIX_ROLES:
-        if any(low.endswith(s) for s in sufs):
-            return role
-    return ""
-
-
-def build_generic(ctx):
-    """Unknown master: wire what we can recognise from texture names."""
-    p, nb = ctx.p, ctx.nb
-    bsdf = ctx.bsdf()
-    roles = {}
-    for pname, path in p.textures.items():
-        role = _role(asset_name(path)) or _role("_" + pname)
-        if role and role not in roles and asset_name(path).lower() not in defaults.NULL_TEXTURES:
-            roles[role] = (pname, path)
-    tint = None
-    for name in ("Color", "Tint", "TintColor", "ColorTint", "BaseColor", "Base Color"):
-        if name in p.vectors:
-            tint = _col(p.vectors[name])
-            break
-    color = tint or (0.8, 0.8, 0.8, 1.0)
-    if "color" in roles:
-        t = ctx.tex(roles["color"][1], data=False, label=roles["color"][0])
-        if t is not None:
-            color = nb.mix(t.outputs["Color"], color, 1.0 if tint else 0.0, "MULTIPLY")
-            if p.blend_mode in ("BLEND_Masked", "BLEND_Translucent"):
-                nb.feed(bsdf.inputs["Alpha"], t.outputs["Alpha"])
-    nb.feed(bsdf.inputs["Base Color"], color)
-    if "normal" in roles:
-        t = ctx.tex(roles["normal"][1], data=True, label=roles["normal"][0])
-        if t is not None:
-            nb.feed(bsdf.inputs["Normal"], ctx.normal_map(t.outputs["Color"]))
-    elif "packed_normal" in roles:
-        t = ctx.tex(roles["packed_normal"][1], data=True, packed=True, label=roles["packed_normal"][0])
-        if t is not None:
-            r, g, _b = nb.separate(t.outputs["Color"])
-            rg = nb.group(groups.normal_from_rg())
-            nb.feed(rg.inputs["X"], r)
-            nb.feed(rg.inputs["Y"], g)
-            nb.feed(bsdf.inputs["Normal"], ctx.normal_map(rg.outputs[0]))
-    for src, dst in (("Roughness", "Roughness"), ("Metallic", "Metallic"), ("Metallicity", "Metallic")):
-        if src in p.scalars:
-            nb.feed(bsdf.inputs[dst], max(0.0, min(1.0, p.scalars[src])))
-    ctx.log.info(f"  Unknown master '{p.master or '?'}': used textures {sorted(r for r in roles)}.")
-    ctx.finish(two_sided=bool(p.two_sided))
-
-
 def build_feather(ctx):
     """M_Feather (e.g. Ballerina wings).
 
@@ -734,17 +518,6 @@ def build_feather(ctx):
     if p.master != "M_Feather":
         log.info("  M_Feather.json not found: roughness and the colour texture's green channel are guesses.")
     ctx.finish(two_sided=p.two_sided if p.two_sided is not None else True)
-
-
-def _packed_normal(ctx, tex, strength=1.0):
-    """Normal from the R/G channels of a packed texture (NOM / NOH); also returns B."""
-    nb = ctx.nb
-    r, g, b = nb.separate(tex.outputs["Color"], label="Packed channels")
-    rg = nb.group(groups.normal_from_rg(), label="Normal from RG")
-    nb.feed(rg.inputs["X"], r)
-    nb.feed(rg.inputs["Y"], g)
-    nb.feed(rg.inputs["Strength"], strength)
-    return ctx.normal_map(rg.outputs[0]), b
 
 
 def build_attachment(ctx):
@@ -865,35 +638,6 @@ def build_hologram(ctx):
     ctx.finish(two_sided=bool(p.two_sided))
 
 
-def _normal_tex(ctx, path, label="Normal", strength=1.0):
-    """Normal map from either a plain normal texture or a packed NOM/NOH one.
-
-    Returns (normal socket, ambient occlusion socket or None).
-    """
-    t = ctx.tex(path, data=True, packed=True, label=label)
-    if t is None:
-        return None, None
-    name = asset_name(path).lower()
-    if name.endswith(("_normal", "_n")):
-        return ctx.normal_map(t.outputs["Color"]), None
-    return _packed_normal(ctx, t, strength)
-
-
-def _fresnel_ramp(ctx, a, b, c, label):
-    """Colour ramp A → B → C across the facing ratio (UE 'rainbow fresnel')."""
-    nb = ctx.nb
-    lw = nb.node("ShaderNodeLayerWeight", f"{label} fresnel")
-    lw.inputs["Blend"].default_value = 0.5
-    ramp = nb.node("ShaderNodeValToRGB", label)
-    els = ramp.color_ramp.elements
-    els[0].position, els[0].color = 0.0, _col(a)
-    els[1].position, els[1].color = 1.0, _col(c)
-    mid = els.new(0.5)
-    mid.color = _col(b)
-    nb.feed(ramp.inputs["Fac"], lw.outputs["Facing"])
-    return ramp.outputs["Color"], lw
-
-
 def build_plastic_sheet(ctx):
     """M_Character_PlasticSheet (+ NoContactShadow): coloured plastic whose
     colour shifts with viewing angle (RainbowColorA/B/C) and blends to the
@@ -966,31 +710,3 @@ def build_team_color(ctx):
     nb.feed(bsdf.inputs["Metallic"], by_mask(metal))
     nb.feed(bsdf.inputs["Specular IOR Level"], by_mask(spec))
     ctx.finish(two_sided=bool(p.two_sided))
-
-
-BUILDERS = {
-    defaults.LAYERED: lambda ctx: build_layered(ctx, old_gen=False),
-    defaults.LAYERED_OLD: lambda ctx: build_layered(ctx, old_gen=True),
-    defaults.PREVIEW: build_preview,
-    defaults.LACE: build_lace,
-    defaults.LACE_SKIRT: build_lace_skirt,
-    defaults.FEATHER: build_feather,
-    defaults.ATTACHMENT: build_attachment,
-    defaults.GLASS: build_glass,
-    defaults.HOLOGRAM: build_hologram,
-    defaults.PLASTIC_SHEET: build_plastic_sheet,
-    defaults.TEAM_COLOR: build_team_color,
-    defaults.GENERIC: build_generic,
-}
-
-
-def build_material(mat, params, finder, log, detail_uv=None):
-    kind = defaults.shader_type(params)
-    if mat.node_tree is None:
-        mat.use_nodes = True
-    ctx = Ctx(mat, params, finder, log, detail_uv=detail_uv)
-    BUILDERS[kind](ctx)
-    mat["ft_material"] = params.name
-    mat["ft_chain"] = " > ".join(params.chain)
-    mat["ft_shader"] = kind
-    return kind

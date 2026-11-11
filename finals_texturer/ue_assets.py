@@ -393,7 +393,11 @@ def _character_masters(finder):
     for stem, paths in finder._index().items():
         if not stem.startswith("m_"):
             continue
-        if not stem.startswith(("m_character", "m_charachter")) and not any(
+        # Masters we have a builder for (heads, body…) count too: their
+        # instances get rewritten by mesh exports just like clothing's.
+        built = stem in defaults._EXACT or any(stem.startswith(k) for k, _t, _m in defaults._KNOWN
+                                               if k.startswith("m_"))
+        if not built and not stem.startswith(("m_character", "m_charachter")) and not any(
                 "materiallibrary" in p.lower() and os.sep + "character" + os.sep in p.lower() for p in paths):
             continue
         for p in paths:
@@ -583,12 +587,24 @@ def find_skins(mesh_dir):
     return skins
 
 
-def read_skin(finder, path, _depth=0):
+def tag_overrides(vp, tags):
+    """A VisualPart's TagOverrides whose MatchingTags are all in `tags`."""
+    out = []
+    for to in vp.get("TagOverrides") or []:
+        match = to.get("MatchingTags") or []
+        if match and all(t in tags for t in match):
+            out.append(to)
+    return out
+
+
+def read_skin(finder, path, _depth=0, tags=()):
     """Return {slot_name: material object path} and the list of MI paths
     from a CharacterCustomizationItem (DA_*) or a lone MI_*.json.
 
     A skin with a ParentVariant inherits the parent's material overrides;
-    its own overrides win.
+    its own overrides win. `tags` (e.g. "Customization.Quality.Frontend")
+    also apply the material overrides of VisualParts' matching TagOverrides,
+    on top of the item's own.
     """
     data = finder.load_json(path)
     exp = export_of_type(data, ("CharacterCustomizationItem",))
@@ -599,12 +615,21 @@ def read_skin(finder, path, _depth=0):
         if parent and _depth < 5:
             ppath = finder.find(parent, ".json")
             if ppath:
-                overrides.update(read_skin(finder, ppath, _depth + 1)[0])
+                overrides.update(read_skin(finder, ppath, _depth + 1, tags)[0])
         for o in props.get("MaterialOverrides", []) or []:
             key = o.get("Key")
             val = ref_path(o.get("Value"))
             if key and val:
                 overrides[key] = val
+        if tags:
+            for vp in props.get("VisualParts") or []:
+                for to in tag_overrides(vp, tags):
+                    if not to.get("bOverrideMaterials"):
+                        continue
+                    for o in to.get("MaterialOverrides") or []:
+                        key, val = o.get("Key"), ref_path(o.get("Value"))
+                        if key and val:
+                            overrides[key] = val
         return overrides, None
     mi = export_of_type(data, MATERIAL_TYPES)
     if mi:

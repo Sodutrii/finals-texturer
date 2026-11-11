@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Finals Texturer",
     "author": "Finals Texturer contributors",
-    "version": (0, 4, 2),
+    "version": (0, 6, 12),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Finals",
     "description": "Imports The Finals clothing (.psk) and rebuilds its layered materials from FModel exports",
@@ -16,13 +16,14 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
-from . import importer, library_ui
+from . import character, importer, library_ui, rigging
 from .ue_assets import AssetFinder, Log, find_skins
 
 ADDON_ID = __package__ or __name__
 
 
 def _prefs(context):
+    context = context or bpy.context
     addon = context.preferences.addons.get(ADDON_ID)
     return addon.preferences if addon else None
 
@@ -162,6 +163,7 @@ class FT_OT_rescan(bpy.types.Operator):
 
     def execute(self, context):
         AssetFinder.clear_cache()
+        character.clear_cache()
         self.report({"INFO"}, "File index cleared")
         return {"FINISHED"}
 
@@ -202,9 +204,24 @@ class FT_PT_panel(bpy.types.Panel):
 
     def draw(self, context):
         lay = self.layout
+        # Shared by all tabs: every import reads from the Exports folder.
         p = _prefs(context)
         if p:
             lay.prop(p, "export_root", text="Exports")
+        lay.row().prop(context.window_manager, "ft_tab", expand=True)
+        tab = context.window_manager.ft_tab
+        if tab == "RIGGING":
+            rigging.draw(lay, context)
+            return
+        if tab == "CHARACTER":
+            character.draw(lay, context)
+        else:
+            self.draw_clothing(lay, context)
+        row = lay.row(align=True)
+        row.operator(FT_OT_show_log.bl_idname, icon="TEXT")
+        row.operator(FT_OT_rescan.bl_idname, icon="FILE_REFRESH")
+
+    def draw_clothing(self, lay, context):
         lay.operator(FT_OT_import.bl_idname, icon="IMPORT")
         box = lay.box()
         obj = context.object
@@ -213,9 +230,6 @@ class FT_PT_panel(bpy.types.Panel):
         box.prop(context.scene, "ft_skin", text="Skin")
         box.operator(FT_OT_apply.bl_idname, icon="MATERIAL")
         box.prop(context.scene, "ft_number", text="Number decals")
-        row = lay.row(align=True)
-        row.operator(FT_OT_show_log.bl_idname, icon="TEXT")
-        row.operator(FT_OT_rescan.bl_idname, icon="FILE_REFRESH")
 
 
 def _menu_import(self, context):
@@ -229,6 +243,14 @@ def register():
     for c in CLASSES:
         bpy.utils.register_class(c)
     library_ui.register(_root, ADDON_ID, _report)
+    character.register(_root, _report)
+    rigging.register()
+    bpy.types.WindowManager.ft_tab = EnumProperty(
+        name="Tab",
+        items=(("CHARACTER", "Character", "Body, face and body type", "USER", 0),
+               ("CLOTHING", "Clothing", "Import clothing and build its materials", "MATCLOTH", 1),
+               ("RIGGING", "Rigging", "Simplify the game rig, attach clothing, Auto-Rig Pro controls",
+                "ARMATURE_DATA", 2)))
     bpy.types.Scene.ft_skin = EnumProperty(name="Skin", items=_skin_items)
     bpy.types.Scene.ft_number = IntProperty(
         name="Number decals", min=0, max=99, default=8, update=_set_numbers,
@@ -239,6 +261,9 @@ def register():
 
 def unregister():
     library_ui.unregister()
+    rigging.unregister()
+    character.unregister()
+    del bpy.types.WindowManager.ft_tab
     bpy.types.TOPBAR_MT_file_import.remove(_menu_import)
     del bpy.types.Scene.ft_skin
     del bpy.types.Scene.ft_number

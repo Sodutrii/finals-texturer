@@ -84,6 +84,14 @@ GLASS = "GLASS"              # M_CharacterGlass_01/02, visors
 HOLOGRAM = "HOLOGRAM"        # M_Character_HolographicMaterial
 PLASTIC_SHEET = "PLASTIC_SHEET"  # M_Character_PlasticSheet (+ NoContactShadow)
 TEAM_COLOR = "TEAM_COLOR"    # M_CharacterLayered_TeamColor_01
+SKIN = "SKIN"                # M_Skin (bare body; body / hands textures by UV tile)
+FACE = "FACE"                # M_Face (head skin)
+EYE = "EYE"                  # M_EyeRefractive_* (eyeballs)
+EYELASH = "EYELASH"          # M_EyelashMaster
+TEETH = "TEETH"              # M_Teeth (teeth, gums, tongue)
+HAIR = "HAIR"                # M_Hair_Metahuman_* hair cards (eyebrows, hair styles)
+GLITTER = "GLITTER"          # M_Skin_Glitter (glossy black, glitter at the edges)
+HIDDEN = "HIDDEN"            # eye shadow shell / wet eye edge: screen-space effects, left invisible
 GENERIC = "GENERIC"          # anything else: guess from texture names
 
 _KNOWN = [
@@ -102,13 +110,25 @@ _KNOWN = [
     ("m_character_holographicmaterial", HOLOGRAM, "M_Character_HolographicMaterial"),
     ("m_character_plasticsheet", PLASTIC_SHEET, "M_Character_PlasticSheet"),
     ("m_characterlayered_teamcolor", TEAM_COLOR, "M_CharacterLayered_TeamColor_01"),
+    ("m_eyerefractive", EYE, "M_EyeRefractive_2"),
+    ("m_eyelashmaster", EYELASH, "M_EyelashMaster"),
+    ("mi_headmaster_eyelashes", EYELASH, "M_EyelashMaster"),
+    ("m_teeth", TEETH, "M_Teeth"),
+    ("m_hair_metahuman", HAIR, "M_Hair_Metahuman_01"),
+    ("m_eyeocclusion", HIDDEN, "M_EyeOcclusion"),
+    ("m_lacrimal_fluid", HIDDEN, "M_lacrimal_fluid"),
 ]
+
+# Exact names only (M_Skin_Glitter / _Space / _Hardsurface are different shaders).
+_EXACT = {"m_skin": SKIN, "m_face": FACE, "m_skin_glitter": GLITTER}
 
 
 def master_from_chain(chain):
     """Best master name we can infer from the names in a chain."""
     for name in reversed(chain):
         low = name.lower()
+        if low in _EXACT:
+            return name
         if low.startswith("mi_character_layered"):
             return "M_Character_Layered"
         for key, _kind, master in _KNOWN:
@@ -123,6 +143,8 @@ def shader_type(params):
         if not name:
             continue
         low = name.lower()
+        if low in _EXACT:
+            return _EXACT[low]
         if low.startswith("mi_character_layered") or low.startswith("m_character_layered"):
             return LAYERED_OLD
         for key, kind, _master in _KNOWN:

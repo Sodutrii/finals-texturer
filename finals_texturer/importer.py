@@ -7,7 +7,7 @@ import bpy
 
 from . import builders, defaults
 from .ue_assets import (AssetFinder, Log, asset_name, export_of_type, mesh_base_name, ref_path,
-                        find_skins, read_skin,
+                        find_skins, read_skin, tag_overrides,
                         resolve_material, skeletal_slots)
 
 DUP_SUFFIX = re.compile(r"\.\d{3}$")
@@ -56,8 +56,12 @@ def _belongs_to(path, mesh_dir):
             or path.startswith(norm(os.path.join(mesh_dir, "Skins")) + os.sep))
 
 
-def skin_parts(finder, skin_path):
-    """Meshes a skin (DA) is made of: [(object path, kind, attachment socket)]."""
+def skin_parts(finder, skin_path, tags=()):
+    """Meshes a skin (DA) is made of: [(object path, kind, attachment socket)].
+
+    `tags` (e.g. "Customization.Archetype.Light") apply the parts' mesh
+    replacements, like the body swapping SK_Body_M for SK_Body_L.
+    """
     data = finder.load_json(skin_path) if skin_path else None
     exp = export_of_type(data, ("CharacterCustomizationItem",))
     if not exp:
@@ -66,8 +70,13 @@ def skin_parts(finder, skin_path):
     for vp in (exp.get("Properties") or {}).get("VisualParts") or []:
         for kind in ("SkeletalMesh", "StaticMesh"):
             path = ref_path(vp.get(kind))
-            if path:
-                parts.append((path, kind, vp.get("AttachmentSocket", "")))
+            if not path:
+                continue
+            for to in tag_overrides(vp, tags):
+                new = ref_path(to.get(f"Replacement{kind}"))
+                if to.get("bOverrideMesh") and new:
+                    path = new
+            parts.append((path, kind, vp.get("AttachmentSocket", "")))
     return parts
 
 
@@ -178,6 +187,11 @@ def import_psk(filepath, log):
     for o in new:
         o["ft_source_dir"] = os.path.dirname(filepath)
         o["ft_source_mesh"] = stem
+        keys = o.data.shape_keys if o.type == "MESH" else None
+        if keys:
+            # The game's own shape keys (body types, push_*, shrink_*…), so
+            # later tools only ever change these and not ones the user adds.
+            o["ft_psk_shapekeys"] = [k.name for k in keys.key_blocks[1:]]
     log.info(f"Imported {os.path.basename(filepath)}: {len(new)} object(s)")
     return new
 
@@ -195,9 +209,13 @@ def _match_slot(slots, psk_name, index):
     return "", ""
 
 
-def apply_to_object(obj, root, skin_choice, log):
+def apply_to_object(obj, root, skin_choice, log, tags=None):
+    """tags: TagOverrides to apply (see read_skin); None = the ones the object
+    was imported with (stored by the Character tab)."""
     if obj.type != "MESH":
         return 0
+    if tags is None:
+        tags = tuple(obj.get("ft_skin_tags", ()))
     mesh_dir = obj.get("ft_source_dir", "")
     mesh_name = obj.get("ft_source_mesh", "") or clean_name(obj.name)
     finder = make_finder(root, mesh_dir, log)
@@ -225,8 +243,9 @@ def apply_to_object(obj, root, skin_choice, log):
         else:
             log.info(f"{obj.name}: no Skins folder next to the mesh; using base materials.")
     overrides, lone_mi = ({}, None)
+    obj["ft_skin"] = skin_path or ""      # read by the Rigging tab (shape-key tags)
     if skin_path:
-        overrides, lone_mi = read_skin(finder, skin_path)
+        overrides, lone_mi = read_skin(finder, skin_path, tags=tags)
         log.info(f"{obj.name}: skin {os.path.basename(skin_path)}")
     overrides_ci = {k.lower(): v for k, v in overrides.items()}
     lone_used = False

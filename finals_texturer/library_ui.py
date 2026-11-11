@@ -223,6 +223,10 @@ class FT_PT_library(bpy.types.Panel):
     bl_category = "Finals"
     bl_parent_id = "FT_PT_panel"
 
+    @classmethod
+    def poll(cls, context):
+        return getattr(context.window_manager, "ft_tab", "CLOTHING") == "CLOTHING"
+
     def draw(self, context):
         lay = self.layout
         sc = context.scene
