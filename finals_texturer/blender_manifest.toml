@@ -1,0 +1,15 @@
+schema_version = "1.0.0"
+
+id = "finals_texturer"
+version = "0.4.2"
+name = "Finals Texturer"
+tagline = "Rebuild The Finals clothing materials from FModel exports"
+maintainer = "Finals Texturer contributors"
+type = "add-on"
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+files = "Reads FModel export folders (meshes, textures, material JSON)"

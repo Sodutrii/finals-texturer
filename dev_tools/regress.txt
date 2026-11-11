@@ -1,0 +1,18 @@
+FancyDress/Assets/WeddingDressGown/SK_FancyDress_WeddingDressGown_M.psk Lace r_dress 0
+FancyDress/Assets/Beret/SM_FancyDress_Beret.pskx Cotton r_beret 0
+Ballerina/Assets/Wings/SM_Wings.pskx AUTO r_wings 180
+Racing/Assets/Shoes/SK_Racing_Shoes_L.psk Black_Yellow r_shoes 35
+Casual/Assets/BasicTshirt/SK_Casual_BasicTshirt_M.psk Cotton_TrentilaRacing r_tshirt 0
+Racing/Assets/Gloves/SK_Racing_Gloves_M.psk SquareWeave_Trentila r_gloves 90 right 10
+Racing/Assets/BikerLoosePants/SK_Racing_BikerLoosePants_M.psk Nylon r_pants1 0
+Racing/Assets/BikerLoosePants/SK_Racing_BikerLoosePants_M.psk Nylon_Trentila r_pants2 0
+Racing/Assets/BikerLoosePants/SK_Racing_BikerLoosePants_M.psk Nylon_AlfaActaDummy r_pants3 270
+Attachments/3DPaperGlasses/SM_3DPaperGlasses_A.pskx AUTO r_paper 20
+Attachments/BattingHelmet/SM_BattingHelmet.pskx AUTO r_helmet 30
+Attachments/RoundGlasses_01/SM_RoundGlasses_01.pskx Plastic r_round 20
+FromTencent/Assets/AsianSpiritBoots/SK_FromTencent_AsianSpiritBoots_M.psk HeavyHittersCometa_AsianSpiritBoots r_boots 90 right
+Casual/Assets/BikerVest/SK_Casual_BikerVest_M.psk Nylon r_vest 0
+Military/Assets/CombatPants/SK_Military_CombatPants_M.psk Envy r_cp1 30
+Military/Assets/CombatPants/SK_Military_CombatPants_M.psk Nylon r_cp2 30
+Military/Assets/CombatPants/SK_Military_CombatPants_M.psk Nylon_Fnatic r_cp3 30
+Military/Assets/CombatPants/SK_Military_CombatPants_M.psk SSG r_cp4 30

@@ -1,0 +1,39 @@
+# Finals Texturer — what stays out of the repository.
+# Ignored files stay on disk and keep working; git just doesn't track or upload them.
+
+# ── Personal / AI working notes ─────────────────────────────────────────────
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
+# ── Extracted game files (Embark's assets: never publish) ───────────────────
+WeddingDressGown/
+LayeredMaterials/
+*.psk
+*.pskx
+*.uasset
+*.uexp
+
+# ── Third-party add-ons (users install these from their own pages) ───────────
+add-on-io-scene-psk-psa-v9_1_2/
+add-on-io-scene-psk-psa-*.zip
+
+# ── Build output (attach the zip to a GitHub Release instead) ────────────────
+finals_texturer-*.zip
+
+# ── Blender files and backups ────────────────────────────────────────────────
+*.blend
+*.blend1
+*.blend2
+
+# ── Python and editor clutter ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# ── Developer test tools (contain paths to this machine) ─────────────────────
+# Uncomment to keep them private; left tracked so contributors can use them.
+# dev_tools/
