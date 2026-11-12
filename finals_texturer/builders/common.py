@@ -20,8 +20,11 @@ NEUTRAL = {
 class Ctx:
     """Everything one material build needs."""
 
-    def __init__(self, mat, params, finder, log, detail_uv=None):
+    def __init__(self, mat, params, finder, log, detail_uv=None, cm_per_unit=1.0):
         self.mat = mat
+        # Game centimetres per Blender unit of the mesh (100 at real size):
+        # for material parameters given in game units (e.g. heights).
+        self.cm_per_unit = cm_per_unit
         # Name of the mesh's second UV channel. Its texel density is uniform
         # (50 cm per UV unit on every mesh measured), and the layered shader's
         # detail textures (fabric normals, roughness/wear masks, colour
@@ -83,14 +86,106 @@ class Ctx:
         if key in self._tex:
             return self._tex[key]
         path = self.finder.find_texture(object_path)
-        if not path:
+        baked = None if path else self.atlas_image(object_path)
+        if not path and baked is None:
             self._warn_missing(asset_name(object_path), object_path)
             self._tex[key] = None
             return None
-        n = self._image_node(path, data, packed, label or asset_name(object_path), extension)
+        if baked is not None:
+            n = self.nb.node("ShaderNodeTexImage", label or asset_name(object_path))
+            n.image = baked
+            n.extension = extension
+        else:
+            n = self._image_node(path, data, packed, label or asset_name(object_path), extension)
         self.nb.feed(n.inputs["Vector"], vector if vector is not None else self.uv(scale, detail))
         self._tex[key] = n
         return n
+
+    def atlas_image(self, object_path):
+        """A curve atlas (CA_*, no image file) baked from its curves, or None.
+        Rows top to bottom = the atlas's curves; values are linear colours."""
+        from ..curves import atlas_pixels
+        from ..ue_assets import export_of_type
+        name = "FT_" + asset_name(object_path)
+        img = bpy.data.images.get(name)
+        if img is not None and img.get("ft_curve_atlas"):
+            return img
+        exp = export_of_type(self.finder.load_asset_json(object_path), ("CurveLinearColorAtlas",))
+        baked = atlas_pixels(self.finder, exp) if exp else None
+        if baked is None:
+            return None
+        w, h, flat = baked
+        img = bpy.data.images.new(name, w, h, alpha=True, float_buffer=True)
+        # colour space first: changing it later regenerates the (blank) image
+        try:
+            img.colorspace_settings.name = "Non-Color"     # already linear colours
+        except TypeError:
+            pass
+        img.pixels.foreach_set(flat)
+        img.update()
+        img.pack()
+        img["ft_curve_atlas"] = True
+        img["ft_atlas_rows"] = h
+        return img
+
+    def gradient(self, object_path, v_from_top, fac, label=None, row=None):
+        """(colour, alpha) sockets of one row of a gradient texture or curve
+        atlas, as a Color Ramp driven by `fac` (0..1 along the row).
+
+        A ramp instead of an image lookup: the lookup position jumps at the
+        edges of whatever drives it (pattern stripes), the GPU then reads a
+        blurred mip level of the whole atlas and the edges turn pale. Rows are
+        blended like bilinear filtering at v (0 = top row), or `row` picks a
+        row by index (curve atlases: the curve). 32 stops."""
+        path = self.finder.find_texture(object_path)
+        img = None
+        if path:
+            img = self.image(path, data=False)
+        else:
+            img = self.atlas_image(object_path)
+        if img is None:
+            self._warn_missing(asset_name(object_path), object_path)
+            return None, None
+        w, h = img.size
+        if not w or not h:
+            return None, None
+        px = img.pixels[:]
+        # Image.pixels are stored values: sRGB image files are still encoded,
+        # Color Ramp stops are linear. Baked atlases are linear already.
+        srgb = not img.get("ft_curve_atlas") and img.colorspace_settings.name == "sRGB"
+        if row is not None:
+            v_from_top = (row + 0.5) / h
+
+        def texel(x, row):          # row 0 = top
+            iy = h - 1 - min(max(row, 0), h - 1)
+            i = (iy * w + min(max(x, 0), w - 1)) * 4
+            return px[i:i + 4]
+
+        rowf = v_from_top * h - 0.5
+        r0 = int(math.floor(rowf))
+        t = rowf - r0
+        stops = min(32, w)
+        ramp = self.nb.node("ShaderNodeValToRGB", label or f"{asset_name(object_path)} (row {v_from_top:.3f})")
+        els = ramp.color_ramp.elements
+        while len(els) < stops:
+            els.new(0.0)
+        for k in range(stops):
+            pos = k / (stops - 1)
+            xf = pos * (w - 1)
+            x0 = int(math.floor(xf))
+            tx = xf - x0
+            c = [0.0] * 4
+            for (xx, wx) in ((x0, 1 - tx), (x0 + 1, tx)):
+                for (rr, wy) in ((r0, 1 - t), (r0 + 1, t)):
+                    tv = texel(xx, rr)
+                    for ch in range(4):
+                        c[ch] += tv[ch] * wx * wy
+            if srgb:
+                c[:3] = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c[:3]]
+            els[k].position = pos
+            els[k].color = tuple(c)
+        self.nb.feed(ramp.inputs["Fac"], fac)
+        return ramp.outputs["Color"], ramp.outputs["Alpha"]
 
     def slice(self, array_path, index, data=True, scale=1.0, label=None):
         """Image node for one slice of a Texture2DArray."""

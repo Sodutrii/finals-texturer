@@ -292,13 +292,16 @@ def fit_to_body(arm, body_arm, log):
     from statistics import median
     origin = body_arm.matrix_world.translation
     ratios = []
+    # skip bones near the feet: they'd give noisy ratios (6 % of the body height)
+    reach = max(((body_arm.matrix_world @ _rest_matrix(body_arm, b.name).translation) - origin).length
+                for b in body_arm.data.bones if _rest_matrix(body_arm, b.name) is not None)
     for b in arm.data.bones:
         bm = _rest_matrix(body_arm, b.name)
         if bm is None:
             continue
         pb = body_arm.matrix_world @ bm.translation - origin
         ph = arm.matrix_world @ b.head_local - origin
-        if ph.length > 10.0:          # skip bones near the feet (cm)
+        if ph.length > 0.06 * reach:
             ratios.append(pb.length / ph.length)
     scale = median(ratios) if ratios else 1.0
     if abs(scale - 1.0) > 1e-4:

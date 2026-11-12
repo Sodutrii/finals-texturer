@@ -166,6 +166,41 @@ def import_skin_parts(main_obj, root, skin_choice, log):
     return new_objs
 
 
+GAME_TO_METRES = 0.01      # the game works in centimetres
+
+
+def import_scale():
+    """Blender units per game unit for new imports (add-on preference)."""
+    addon = bpy.context.preferences.addons.get(__package__)
+    size = getattr(addon.preferences, "import_size", "REAL") if addon else "REAL"
+    return 1.0 if size == "GAME" else GAME_TO_METRES
+
+
+def _apply_import_scale(objs, scale):
+    """Scale freshly imported objects into the mesh / bone data itself, so
+    every object keeps a scale of 1 (rigging and Auto-Rig Pro need that)."""
+    from mathutils import Matrix
+    m = Matrix.Scale(scale, 4)
+    for o in objs:
+        if o.type == "ARMATURE":
+            o.data.transform(m)
+        elif o.type == "MESH":
+            o.data.transform(m, shape_keys=True)
+        o.location = o.location * scale
+        o["ft_unit_scale"] = scale
+        # Armature.transform() doesn't tag the pose for re-evaluation: without
+        # this the pose keeps the old bone positions, so meshes deform back to
+        # game size and constraints (heads following the body) copy them.
+        o.data.update_tag()
+        o.update_tag(refresh={"OBJECT", "DATA"})
+    bpy.context.view_layer.update()
+
+
+def cm_per_unit(obj):
+    """Game centimetres per Blender unit on an object imported by the add-on."""
+    return 1.0 / (obj.get("ft_unit_scale", 1.0) or 1.0)
+
+
 def import_psk(filepath, log):
     missing = ("The PSK importer (io_scene_psk_psa) isn't available. Make sure it's installed "
                "and enabled. If you just removed or updated a copy of it, restart Blender.")
@@ -183,6 +218,9 @@ def import_psk(filepath, log):
     if "FINISHED" not in res:
         raise RuntimeError(f"PSK import failed for {filepath}")
     new = [o for o in bpy.data.objects if o not in before]
+    scale = import_scale()
+    if scale != 1.0:
+        _apply_import_scale(new, scale)
     stem = os.path.splitext(os.path.basename(filepath))[0]
     for o in new:
         o["ft_source_dir"] = os.path.dirname(filepath)
@@ -276,7 +314,8 @@ def apply_to_object(obj, root, skin_choice, log, tags=None):
         mat = bpy.data.materials.get(params.name) or bpy.data.materials.new(params.name)
         uvs = obj.data.uv_layers
         detail_uv = uvs[1].name if len(uvs) > 1 else None
-        kind = builders.build_material(mat, params, finder, log, detail_uv=detail_uv)
+        kind = builders.build_material(mat, params, finder, log, detail_uv=detail_uv,
+                                       cm_per_unit=cm_per_unit(obj))
         log.info(f"    built as {kind}")
         mslot.material = mat
         done += 1

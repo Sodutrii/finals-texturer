@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Finals Texturer",
     "author": "Finals Texturer contributors",
-    "version": (0, 6, 12),
+    "version": (0, 8, 4),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Finals",
     "description": "Imports The Finals clothing (.psk) and rebuilds its layered materials from FModel exports",
@@ -16,7 +16,7 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
-from . import character, importer, library_ui, rigging
+from . import character, importer, library_ui, rigging, weapons
 from .ue_assets import AssetFinder, Log, find_skins
 
 ADDON_ID = __package__ or __name__
@@ -43,9 +43,18 @@ class FT_Preferences(bpy.types.AddonPreferences):
                     "Parent materials and shared textures are looked up here",
         subtype="DIR_PATH",
     )
+    import_size: EnumProperty(
+        name="Import Size",
+        items=(("REAL", "Real size (metres)", "Scale imports to real-world size: 1 Blender unit = 1 m, "
+                "a Medium body is 1.68 m. The scale is applied to the mesh and bones (object scale stays 1)"),
+               ("GAME", "Game units (centimetres)", "Keep the game's units: 1 Blender unit = 1 cm, "
+                "a Medium body is 168 units tall")),
+        default="REAL",
+    )
 
     def draw(self, context):
         self.layout.prop(self, "export_root")
+        self.layout.prop(self, "import_size")
 
 
 # ── skin list for the active object ─────────────────────────────────────────
@@ -164,6 +173,7 @@ class FT_OT_rescan(bpy.types.Operator):
     def execute(self, context):
         AssetFinder.clear_cache()
         character.clear_cache()
+        weapons.clear_cache()
         self.report({"INFO"}, "File index cleared")
         return {"FINISHED"}
 
@@ -215,6 +225,8 @@ class FT_PT_panel(bpy.types.Panel):
             return
         if tab == "CHARACTER":
             character.draw(lay, context)
+        elif tab == "WEAPONS":
+            weapons.draw(lay, context)
         else:
             self.draw_clothing(lay, context)
         row = lay.row(align=True)
@@ -244,11 +256,13 @@ def register():
         bpy.utils.register_class(c)
     library_ui.register(_root, ADDON_ID, _report)
     character.register(_root, _report)
+    weapons.register(_root, _report)
     rigging.register()
     bpy.types.WindowManager.ft_tab = EnumProperty(
         name="Tab",
         items=(("CHARACTER", "Character", "Body, face and body type", "USER", 0),
                ("CLOTHING", "Clothing", "Import clothing and build its materials", "MATCLOTH", 1),
+               ("WEAPONS", "Weapons", "Import weapons with their skins", "TOOL_SETTINGS", 3),
                ("RIGGING", "Rigging", "Simplify the game rig, attach clothing, Auto-Rig Pro controls",
                 "ARMATURE_DATA", 2)))
     bpy.types.Scene.ft_skin = EnumProperty(name="Skin", items=_skin_items)
@@ -263,6 +277,7 @@ def unregister():
     library_ui.unregister()
     rigging.unregister()
     character.unregister()
+    weapons.unregister()
     del bpy.types.WindowManager.ft_tab
     bpy.types.TOPBAR_MT_file_import.remove(_menu_import)
     del bpy.types.Scene.ft_skin

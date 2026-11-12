@@ -631,6 +631,20 @@ def read_skin(finder, path, _depth=0, tags=()):
                         if key and val:
                             overrides[key] = val
         return overrides, None
+    wsk = export_of_type(data, ("WeaponSkinDataAsset",))
+    if wsk:
+        # Weapon skin: material overrides for the base mesh and per weapon
+        # part; slot names are unique across a weapon's parts, so one map.
+        props = wsk.get("Properties") or {}
+        overrides = {}
+        groups = [props.get("BaseOverrides") or {}]
+        groups += [(po.get("Value") or {}) for po in props.get("PartOverrides") or []]
+        for g in groups:
+            for o in g.get("Materials") or []:
+                key, val = o.get("Key"), ref_path(o.get("Value"))
+                if key and val:
+                    overrides[key] = val
+        return overrides, None
     mi = export_of_type(data, MATERIAL_TYPES)
     if mi:
         return {}, path   # caller decides which slot it belongs to

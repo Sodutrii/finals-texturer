@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "finals_texturer"
-version = "0.6.12"
+version = "0.8.4"
 name = "Finals Texturer"
 tagline = "Rebuild The Finals clothing materials from FModel exports"
 maintainer = "Finals Texturer contributors"

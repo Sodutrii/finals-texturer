@@ -651,6 +651,8 @@ def build_plastic_sheet(ctx):
                            p.v("RainbowColorTopC", (0, 0, 1, 1)), "Colours (top)")
     tc = nb.node("ShaderNodeTexCoord")
     _x, _y, z = nb.separate(tc.outputs["Object"], label="Object position")
+    if ctx.cm_per_unit != 1.0:          # LowestPoint / HighestPoint are game cm
+        z = nb.mul(z, ctx.cm_per_unit)
     lo, hi = p.s("LowestPoint", 0.0), p.s("HighestPoint", 1.0)
     height = nb.map_range(z, lo, hi if abs(hi - lo) > 1e-4 else lo + 1.0)
     color = nb.mix(bottom, top, height, label="Bottom → top")

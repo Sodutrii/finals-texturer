@@ -91,6 +91,10 @@ EYELASH = "EYELASH"          # M_EyelashMaster
 TEETH = "TEETH"              # M_Teeth (teeth, gums, tongue)
 HAIR = "HAIR"                # M_Hair_Metahuman_* hair cards (eyebrows, hair styles)
 GLITTER = "GLITTER"          # M_Skin_Glitter (glossy black, glitter at the edges)
+WEAPON = "WEAPON"            # M_Weapon_Base_5Layers (weapon skins, layers + graphic)
+WEAPON_PRESET = "WEAPON_PRESET"  # M_WeaponPreset_CR+NOM (weapon skins with their own model)
+WEAPON_TEXT = "WEAPON_TEXT"  # M_WeaponText (logo / lettering decals on weapons)
+WEAPON_FX = "WEAPON_FX"      # other weapon effect masters (diamond, fresnel, progression…), approximate
 HIDDEN = "HIDDEN"            # eye shadow shell / wet eye edge: screen-space effects, left invisible
 GENERIC = "GENERIC"          # anything else: guess from texture names
 
@@ -114,6 +118,10 @@ _KNOWN = [
     ("m_eyelashmaster", EYELASH, "M_EyelashMaster"),
     ("mi_headmaster_eyelashes", EYELASH, "M_EyelashMaster"),
     ("m_teeth", TEETH, "M_Teeth"),
+    ("m_weapon_base", WEAPON, "M_Weapon_Base_5Layers"),
+    ("m_weaponpreset", WEAPON_PRESET, "M_WeaponPreset_CR+NOM"),
+    ("m_weapontext", WEAPON_TEXT, "M_WeaponText"),
+    ("mi_weapon_base", WEAPON, "M_Weapon_Base_5Layers"),
     ("m_hair_metahuman", HAIR, "M_Hair_Metahuman_01"),
     ("m_eyeocclusion", HIDDEN, "M_EyeOcclusion"),
     ("m_lacrimal_fluid", HIDDEN, "M_lacrimal_fluid"),
@@ -150,6 +158,12 @@ def shader_type(params):
         for key, kind, _master in _KNOWN:
             if low.startswith(key):
                 return kind
+    # Weapon-family masters without their own builder (M_Diamond_Weapon,
+    # M_WeaponProgression, M_LegendaryWeaponFresnel…): approximate them;
+    # checked before the parameter guess (the progression master has 1_*
+    # params and was taken for the clothing layered shader).
+    if any("weapon" in (n or "").lower() for n in names):
+        return WEAPON_FX
     # No known parent: recognise the layered system by its parameters.
     if params.has_any("1_BaseRoughness", "1_DetailTiling", "OcclusionCurvatureMaterialID"):
         return LAYERED_OLD if params.has_any("1_ColorSchemeBlend", "TextureArray_Colors") else LAYERED
