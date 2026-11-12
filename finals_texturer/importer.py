@@ -129,39 +129,52 @@ def find_part_file(finder, object_path, lod_hint=""):
     return ""
 
 
-def import_skin_parts(main_obj, root, skin_choice, log):
+def _mark_socket(objs, kind, socket):
+    """Static meshes (hats, glasses…) are modelled in place on the Medium body
+    and attached to a bone socket in game: remember it, so the Rigging tab's
+    Attach can parent them to that bone."""
+    if kind == "StaticMesh" and socket and socket != "None":
+        for o in objs:
+            if o.type == "MESH":
+                o["ft_socket"] = socket
+
+
+def import_skin_parts(main_obj, root, skin_choice, log, cls=None):
     """Import the other meshes the chosen skin is made of and apply the same skin.
 
-    Returns the newly imported objects. Parts that aren't exported are listed
-    in the log with the game path to export.
+    cls: the body class ('L' / 'M' / 'H') the parts are for; None = the main
+    mesh's own class (from its _L/_M/_H suffix). Returns the newly imported
+    objects. Parts that aren't exported are listed in the log with the game
+    path to export.
     """
     mesh_dir = main_obj.get("ft_source_dir", "")
     mesh_name = main_obj.get("ft_source_mesh", "")
     finder = make_finder(root, mesh_dir, log)
     skin_path = pick_skin(mesh_dir, skin_choice, finder=finder, mesh_name=mesh_name)
-    parts = skin_parts(finder, skin_path)
+    if cls is None:
+        cls = mesh_class(mesh_name)
+    tags = class_tags(cls)
+    parts = skin_parts(finder, skin_path, tags)
     if len(parts) < 2:
         return []
-    m = re.search(r"_(L|M|H)$", mesh_name, re.IGNORECASE)
-    lod = m.group(1).upper() if m else ""
     own = mesh_base_name(mesh_name).lower()
     new_objs = []
     for path, kind, socket in parts:
         if mesh_base_name(asset_name(path)).lower() == own:
             continue
-        f = find_part_file(finder, path, lod)
+        f = find_part_file(finder, path, cls)
         if not f:
             log.warn(f"Skin part {asset_name(path)} isn't exported (game path {path}). "
                      "Export its folder in FModel to include it.")
             continue
         objs = import_psk(f, log)
+        fit_class(objs, f, cls, log)
+        _mark_socket(objs, kind, socket)
         for o in objs:
             o["ft_outfit_skin"] = skin_path
+            o["ft_skin_tags"] = list(tags)
             if o.type == "MESH":
-                apply_to_object(o, root, skin_path, log)
-        if kind == "StaticMesh" and socket:
-            log.info(f"  {asset_name(path)} attaches to the '{socket}' bone in game; "
-                     "it was placed at the origin, move it into place by hand.")
+                apply_to_object(o, root, skin_path, log, tags=tags)
         new_objs += objs
     return new_objs
 
@@ -176,24 +189,61 @@ def import_scale():
     return 1.0 if size == "GAME" else GAME_TO_METRES
 
 
-def _apply_import_scale(objs, scale):
-    """Scale freshly imported objects into the mesh / bone data itself, so
-    every object keeps a scale of 1 (rigging and Auto-Rig Pro need that)."""
+def scale_objects(objs, factor):
+    """Scale freshly imported objects about the world origin (the feet) into the
+    mesh / bone data itself, so every object keeps a scale of 1 (rigging and
+    Auto-Rig Pro need that)."""
     from mathutils import Matrix
-    m = Matrix.Scale(scale, 4)
+    m = Matrix.Scale(factor, 4)
     for o in objs:
         if o.type == "ARMATURE":
             o.data.transform(m)
         elif o.type == "MESH":
             o.data.transform(m, shape_keys=True)
-        o.location = o.location * scale
-        o["ft_unit_scale"] = scale
+        o.location = o.location * factor
         # Armature.transform() doesn't tag the pose for re-evaluation: without
         # this the pose keeps the old bone positions, so meshes deform back to
-        # game size and constraints (heads following the body) copy them.
+        # the old size and constraints (heads following the body) copy them.
         o.data.update_tag()
         o.update_tag(refresh={"OBJECT", "DATA"})
     bpy.context.view_layer.update()
+
+
+def _apply_import_scale(objs, scale):
+    scale_objects(objs, scale)
+    for o in objs:
+        o["ft_unit_scale"] = scale
+
+
+# The Light / Heavy skeletons are the Medium one scaled about the feet: every
+# bone of SK_Body_L / SK_Body_H sits at exactly x0.85 / x1.15 of SK_Body_M.
+# The game scales whatever is made for Medium (hats and other static meshes on
+# the head socket, single-size skeletal meshes, heads) by the same factor.
+CLASS_SCALE = {"L": 0.85, "M": 1.0, "H": 1.15}
+ARCHETYPE_TAG = {"L": "Customization.Archetype.Light", "H": "Customization.Archetype.Heavy"}
+
+
+def mesh_class(path):
+    """'L' / 'M' / 'H' from a mesh file name's suffix, '' for single-size meshes."""
+    m = re.search(r"_(L|M|H)$", os.path.splitext(os.path.basename(path or ""))[0], re.IGNORECASE)
+    return m.group(1).upper() if m else ""
+
+
+def class_tags(cls):
+    return (ARCHETYPE_TAG[cls],) if cls in ARCHETYPE_TAG else ()
+
+
+def fit_class(objs, mesh_path, cls, log):
+    """Scale a mesh made for another class (a Medium or single-size mesh worn
+    by Light / Heavy) the way the game's skeleton does."""
+    src = mesh_class(mesh_path) or "M"
+    if cls not in CLASS_SCALE or src == cls:
+        return 1.0
+    factor = CLASS_SCALE[cls] / CLASS_SCALE[src]
+    scale_objects(objs, factor)
+    log.info(f"  {os.path.basename(mesh_path)} is made for {'Medium' if src == 'M' else src}: "
+             f"scaled x{factor:.3f} about the feet to fit the {cls} body.")
+    return factor
 
 
 def cm_per_unit(obj):
@@ -332,17 +382,21 @@ def import_item(skin_path, root, log, whole_skin=True, lod_hint=""):
     """Import an item straight from its skin file (DA), e.g. a library search hit.
 
     The first exported mesh of the skin becomes the main object; with
-    whole_skin the skin's other meshes come along. Returns the new objects;
+    whole_skin the skin's other meshes come along. lod_hint: the body class
+    ('L' / 'M' / 'H'): picks the class's meshes (incl. the skin's class mesh
+    swaps) and scales meshes made for Medium to it. Returns the new objects;
     meshes that aren't exported are reported in the log.
     """
     finder = make_finder(root, os.path.dirname(skin_path), log)
-    parts = skin_parts(finder, skin_path)
+    tags = class_tags(lod_hint)
+    parts = skin_parts(finder, skin_path, tags)
     if not parts:
         log.warn(f"{os.path.basename(skin_path)} lists no meshes (it may change the body or "
                  "another item instead, e.g. face paint or a voice).")
         return []
     main_file = ""
-    for path, _kind, _socket in parts:
+    main_kind = main_socket = ""
+    for path, main_kind, main_socket in parts:
         main_file = find_part_file(finder, path, lod_hint)
         if main_file:
             break
@@ -352,13 +406,17 @@ def import_item(skin_path, root, log, whole_skin=True, lod_hint=""):
                      "Export its folder in FModel, then try again.")
         return []
     objs = import_psk(main_file, log)
-    main = next((o for o in objs if o.type == "MESH"), None)
+    if lod_hint:
+        fit_class(objs, main_file, lod_hint, log)
+    _mark_socket(objs, main_kind, main_socket)
+    main =next((o for o in objs if o.type == "MESH"), None)
     for o in objs:
         o["ft_outfit_skin"] = skin_path
+        o["ft_skin_tags"] = list(tags)
         if o.type == "MESH":
-            apply_to_object(o, root, skin_path, log)
+            apply_to_object(o, root, skin_path, log, tags=tags)
     if whole_skin and main is not None:
-        objs += import_skin_parts(main, root, skin_path, log)
+        objs += import_skin_parts(main, root, skin_path, log, cls=lod_hint or None)
     return objs
 
 

@@ -115,9 +115,18 @@ def source_armature_of(mesh_obj):
     return None
 
 
-def resolve_target(name, src_bones, master_names):
+def _parent_name(name, src_bones, parents):
+    if parents and name in parents:
+        return parents[name] or None
+    b = src_bones.get(name)
+    return b.parent.name if b is not None and b.parent is not None else None
+
+
+def resolve_target(name, src_bones, master_names, parents=None):
     """Return the master bone that should receive the weights of `name`
-    (None = leave the vertex group untouched, not a skeleton group)."""
+    (None = leave the vertex group untouched, not a skeleton group).
+    parents: {bone: game parent} for bones whose parent was cleared (heads
+    following the body, see character.fit_to_body)."""
     if name in master_names:
         return name
     ov = WEIGHT_OVERRIDES.get(name)
@@ -126,13 +135,13 @@ def resolve_target(name, src_bones, master_names):
             return [(ov, HIP_FOLLOW), ("pelvis", 1.0 - HIP_FOLLOW)]
         return ov if HIP_FOLLOW >= 1.0 or "pelvis" not in master_names else "pelvis"
     if src_bones is not None and name in src_bones:
-        b = src_bones[name].parent
-        while b is not None:
-            if b.name in master_names:
-                return b.name
-            if b.name in WEIGHT_OVERRIDES:
-                return resolve_target(b.name, None, master_names)
-            b = b.parent
+        p = _parent_name(name, src_bones, parents)
+        while p is not None:
+            if p in master_names:
+                return p
+            if p in WEIGHT_OVERRIDES:
+                return resolve_target(p, None, master_names)
+            p = _parent_name(p, src_bones, parents)
         for fb in ("pelvis", "root"):
             if fb in master_names:
                 return fb
@@ -217,6 +226,7 @@ def simplify_armature(arm_obj, tidy_orientation=True, report=print):
             else:
                 nmap[vg.name] = t
         merged_total += merge_vertex_groups(me, nmap)
+    _retarget_followers(arm_obj, keep)
 
     # --- bones
     _set_active(arm_obj)
@@ -264,6 +274,32 @@ def simplify_armature(arm_obj, tidy_orientation=True, report=print):
     if unresolved:
         report(f"Left untouched (not skeleton groups): {', '.join(sorted(unresolved))}")
     return removed
+
+
+def _retarget_followers(arm_obj, keep):
+    """Heads from the Character tab follow body bones through Armature
+    constraints. A followed bone that Simplify removes hands over to the bone
+    that receives its weights (the same split as the weights)."""
+    bones = arm_obj.data.bones
+    for o in bpy.data.objects:
+        if o.type != "ARMATURE" or o == arm_obj or o.pose is None:
+            continue
+        for pb in o.pose.bones:
+            for c in pb.constraints:
+                if c.type != "ARMATURE":
+                    continue
+                for t in list(c.targets):
+                    if t.target != arm_obj or not t.subtarget or t.subtarget in keep:
+                        continue
+                    new = resolve_target(t.subtarget, bones, keep)
+                    if new is None:
+                        continue
+                    splits = [(new, 1.0)] if isinstance(new, str) else list(new)
+                    w = t.weight
+                    t.subtarget, t.weight = splits[0][0], w * splits[0][1]
+                    for name, f in splits[1:]:
+                        nt = c.targets.new()
+                        nt.target, nt.subtarget, nt.weight = arm_obj, name, w * f
 
 
 def _tidy_bones(eb):
@@ -346,6 +382,22 @@ def attach_pieces(master, objects, delete_source_armatures=True, report=print):
 
     done, warnings, attached = 0, [], []
     for me in meshes:
+        socket = me.get("ft_socket", "")
+        if socket and not me.vertex_groups:
+            # static mesh on a bone socket (hat, glasses…): follows that bone
+            if socket not in master_names:
+                warnings.append(f"{me.name}: attaches to '{socket}' in game, which the body rig "
+                                "doesn't have; parent it by hand")
+                continue
+            mw = me.matrix_world.copy()
+            me.parent = master
+            me.parent_type = "BONE"
+            me.parent_bone = socket
+            bpy.context.view_layer.update()
+            me.matrix_world = mw
+            done += 1
+            attached.append(me)
+            continue
         src = source_armature_of(me)
         if src == master:
             continue
@@ -356,9 +408,10 @@ def attach_pieces(master, objects, delete_source_armatures=True, report=print):
                 warnings.append(f"{me.name}: rest pose differs from body at '{bn}' "
                                 f"by {d:.3f} - check fit")
         src_bones = src.data.bones if src else None
+        parents = dict(src.get("ft_bone_parents", {})) if src else None
         nmap, unresolved = {}, []
         for vg in me.vertex_groups:
-            t = resolve_target(vg.name, src_bones, master_names)
+            t = resolve_target(vg.name, src_bones, master_names, parents)
             if t is None:
                 unresolved.append(vg.name)
             else:
@@ -436,6 +489,10 @@ def apply_shape_keys(master, scene, report=print):
 def unbound_pieces(master):
     out = []
     for o in bpy.data.objects:
+        if o.type == "MESH" and o.get("ft_socket") and not o.vertex_groups:
+            if not (o.parent == master and o.parent_type == "BONE"):
+                out.append(o)
+            continue
         if o.type != "MESH" or not o.vertex_groups:
             continue
         src = source_armature_of(o)

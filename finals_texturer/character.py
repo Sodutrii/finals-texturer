@@ -297,48 +297,74 @@ def _rest_matrix(arm, name):
     return b.matrix_local.copy() if b else None
 
 
+FOLLOW = "Follow body"
+BONE_PARENTS_PROP = "ft_bone_parents"   # bones unparented for FOLLOW → their game parent
+
+
 def fit_to_body(arm, body_arm, log):
     """Fit a head (or other part with its own skeleton) to the body's class.
 
-    Heads are made for the Medium body. The Light and Heavy bodies are uniform
-    scales of it about the feet (x0.85 / x1.15: head, neck and shoulders all
-    agree), so the part's armature is scaled about the body's origin by the
-    median ratio of matching bone heights. Its bones then copy the body bones'
-    location and rotation (not scale), so posing the body carries it along.
+    Heads are made for the Medium body. The Light and Heavy skeletons are the
+    Medium one scaled about the feet (x0.85 / x1.15 at every bone), so the
+    part (armature + meshes) is scaled into its data by the median ratio of
+    matching bone positions; object scales stay 1 for rigging. It's parented
+    to the body armature in the body's own space (so it lands on the body even
+    if that was moved), and every bone the body also has follows the body
+    bone's *deformation* (Armature constraint), not its orientation: the
+    Rigging tab's Simplify re-orients the body bones' rest pose, and copying
+    world rotations then twisted the head apart.
     """
     from statistics import median
-    origin = body_arm.matrix_world.translation
+    from mathutils import Matrix
     ratios = []
+    rest = {b.name: _rest_matrix(body_arm, b.name) for b in body_arm.data.bones}
     # skip bones near the feet: they'd give noisy ratios (6 % of the body height)
-    reach = max(((body_arm.matrix_world @ _rest_matrix(body_arm, b.name).translation) - origin).length
-                for b in body_arm.data.bones if _rest_matrix(body_arm, b.name) is not None)
+    reach = max((m.translation.length for m in rest.values() if m is not None), default=0.0)
     for b in arm.data.bones:
-        bm = _rest_matrix(body_arm, b.name)
+        bm = rest.get(b.name)
         if bm is None:
             continue
-        pb = body_arm.matrix_world @ bm.translation - origin
-        ph = arm.matrix_world @ b.head_local - origin
-        if ph.length > 0.06 * reach:
-            ratios.append(pb.length / ph.length)
+        if b.head_local.length > 0.06 * reach:
+            ratios.append(bm.translation.length / b.head_local.length)
     scale = median(ratios) if ratios else 1.0
     if abs(scale - 1.0) > 1e-4:
-        arm.location = origin + (arm.location - origin) * scale
-        arm.scale = arm.scale * scale
-    # Moving or scaling the body moves the head with it (also keeps their rest
-    # poses lined up for the Rigging tab's attach).
-    bpy.context.view_layer.update()
-    mw = arm.matrix_world.copy()
+        importer.scale_objects([arm] + [o for o in bpy.data.objects if o.parent == arm], scale)
     arm.parent = body_arm
-    arm.matrix_parent_inverse = body_arm.matrix_world.inverted()
-    arm.matrix_world = mw
-    for pb in arm.pose.bones:
-        if body_arm.data.bones.get(pb.name) and not any(c.name.startswith("Follow body") for c in pb.constraints):
-            for kind in ("COPY_LOCATION", "COPY_ROTATION"):
-                c = pb.constraints.new(kind)
-                c.name = "Follow body"
-                c.target, c.subtarget = body_arm, pb.name
+    arm.matrix_parent_inverse = Matrix.Identity(4)
+    followers = {pb.name for pb in arm.pose.bones if body_arm.data.bones.get(pb.name)}
+    _unparent_bones(arm, followers)
+    for name in followers:
+        pb = arm.pose.bones[name]
+        if any(c.name.startswith(FOLLOW) for c in pb.constraints):
+            continue
+        c = pb.constraints.new("ARMATURE")
+        c.name = FOLLOW
+        t = c.targets.new()
+        t.target, t.subtarget = body_arm, name
     log.info(f"Scaled {arm.name} x{scale:.3f} about the feet to fit {body_arm.name}.")
     return scale
+
+
+def _unparent_bones(arm, names):
+    """Clear the parents of these bones (rest pose unchanged). An Armature
+    constraint moves a bone by its target's deformation; a parent that already
+    moved it the same way would apply it twice."""
+    vl = bpy.context.view_layer
+    prev = vl.objects.active
+    if bpy.context.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
+    vl.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    parents = dict(arm.get(BONE_PARENTS_PROP, {}))
+    for eb in arm.data.edit_bones:
+        if eb.name in names and eb.parent is not None:
+            parents[eb.name] = eb.parent.name
+            eb.use_connect = False
+            eb.parent = None
+    bpy.ops.object.mode_set(mode="OBJECT")
+    # the game hierarchy, for the Rigging tab's weight merge (rigging.resolve_target)
+    arm[BONE_PARENTS_PROP] = parents
+    vl.objects.active = prev
 
 
 def _fit_parts(groups, body_arm, log):

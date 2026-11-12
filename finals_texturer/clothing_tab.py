@@ -359,6 +359,7 @@ class FT_OT_cloth_import(bpy.types.Operator):
                     self.report({"ERROR"}, "The item's mesh isn't exported (see the status box)")
                     return {"CANCELLED"}
                 objs = importer.import_psk(mesh, log)
+                importer.fit_class(objs, mesh, sc.ft_char_class, log)
                 for o in objs:
                     if o.type == "MESH":
                         importer.apply_to_object(o, root, s["path"], log)
