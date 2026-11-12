@@ -187,12 +187,12 @@ class Ctx:
         self.nb.feed(ramp.inputs["Fac"], fac)
         return ramp.outputs["Color"], ramp.outputs["Alpha"]
 
-    def slice(self, array_path, index, data=True, scale=1.0, label=None):
+    def slice(self, array_path, index, data=True, scale=1.0, label=None, packed=False):
         """Image node for one slice of a Texture2DArray."""
         if not array_path:
             return None
         index = int(round(index))
-        key = ("slice", array_path, index, round(scale, 5))
+        key = ("slice", array_path, index, round(scale, 5), packed)
         if key in self._tex:
             return self._tex[key]
         path = self.finder.find_array_slice(array_path, index)
@@ -200,7 +200,7 @@ class Ctx:
             self._warn_missing(f"{asset_name(array_path)}_LAYER{index}", array_path)
             self._tex[key] = None
             return None
-        n = self._image_node(path, data, False, label or f"{asset_name(array_path)} [{index}]", "REPEAT")
+        n = self._image_node(path, data, packed, label or f"{asset_name(array_path)} [{index}]", "REPEAT")
         self.nb.feed(n.inputs["Vector"], self.uv(scale, detail=True))
         self._tex[key] = n
         return n
