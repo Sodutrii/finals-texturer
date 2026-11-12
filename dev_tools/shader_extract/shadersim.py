@@ -101,6 +101,25 @@ class Shader:
                "ilt", "ieq", "ine", "uge", "ult", "umin", "umax", "and", "or", "xor", "not", "itof", "utof", "udiv"}
 
     def _src(self, tok, n, integer=False):
+        xm = re.fullmatch(r"(-)?(x\d+)\[([^\]]+)\](?:\.([xyzw]+))?", tok.strip())
+        if xm:                                   # indexable temp array (x0[3] or x0[r4.y + 0])
+            neg, arr, idx, swz = xm.group(1), xm.group(2), xm.group(3), xm.group(4) or "xyzw"
+            if re.fullmatch(r"\d+", idx.strip()):
+                src = self._reg(f"{arr}[{int(idx)}]", n)
+            else:
+                im = re.fullmatch(r"\s*(r\d+)\.([xyzw])\s*\+\s*(\d+)\s*", idx)
+                base = as_u(self._reg(im.group(1), n)[SWZ[im.group(2)]]).astype(np.int64) + int(im.group(3))
+                keys = sorted(int(k.split("[")[1][:-1]) for k in self.regs if k.startswith(arr + "["))
+                size = (max(keys) + 1) if keys else 1
+                table = np.zeros((size, 4, n), F32)
+                for k in keys:
+                    table[k] = np.asarray(self.regs[f"{arr}[{k}]"], F32)
+                bi = np.clip(base, 0, size - 1)
+                src = [table[bi, c, np.arange(n)] for c in range(4)]
+            out = [src[SWZ[c]] for c in swz]
+            while len(out) < 4:
+                out.append(out[-1])
+            return [-c for c in out] if neg else out
         m = OPERAND.fullmatch(tok.strip())
         if not m:
             raise ValueError(f"operand {tok!r}")
@@ -136,6 +155,10 @@ class Shader:
         return out
 
     def _reg(self, reg, n):
+        if reg.startswith("x"):                  # indexable temp element "x0[3]"
+            if reg not in self.regs:
+                self.regs[reg] = [np.zeros(n, F32) for _ in range(4)]
+            return self.regs[reg]
         m = re.fullmatch(r"([a-z]+)(\d+)(?:\[(\d+)\])?", reg)
         kind, idx, sub = m.group(1), int(m.group(2)), m.group(3)
         if kind == "cb":
@@ -149,7 +172,9 @@ class Shader:
 
     def _dst(self, tok):
         tok = tok.strip()
-        m = re.fullmatch(r"([a-z]+\d+)(?:\.([xyzw]+))?", tok)
+        m = re.fullmatch(r"([a-z]+\d+(?:\[\d+\])?|oDepth\w*|oMask)(?:\.([xyzw]+))?", tok)
+        if m.group(1).startswith("oDepth") or m.group(1) == "oMask":
+            return m.group(1), m.group(2) or "x"
         return m.group(1), m.group(2) or "xyzw"
 
     def _write(self, dst, vals, sat=False):

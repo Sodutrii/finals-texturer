@@ -19,6 +19,7 @@ class Log:
     def __init__(self):
         self.lines = []
         self.warnings = 0
+        self.flat_jsons = set()      # material files FModel's mesh export flattened (see resolve_material)
 
     def info(self, msg):
         self.lines.append(msg)
@@ -244,6 +245,7 @@ class MaterialParams:
         self.two_sided = None
         self.opacity_clip = 0.3333
         self.source_files = []
+        self.flat_json = ""          # a material file FModel's mesh export flattened (no Parent)
 
     # convenience getters with defaults
     def s(self, name, default=0.0):
@@ -471,6 +473,10 @@ def resolve_material(finder, object_path=None, json_path=None, log=None, max_dep
         exp = export_of_type(data, MATERIAL_TYPES)
         if exp is None:
             levels.append((name, None, data))   # flat format, no parent info
+            out.flat_json = out.source_files[-1] or ""
+            flat = getattr(log, "flat_jsons", None)
+            if flat is not None and out.flat_json:
+                flat.add(out.flat_json)
             break
         levels.append((exp.get("Name", name), exp, None))
         if exp.get("Type") == "Material":

@@ -26,7 +26,7 @@ import zlib
 import bpy
 from bpy.props import EnumProperty
 
-from . import importer
+from . import importer, names, search, ui
 from .ue_assets import AssetFinder, Log, asset_name, export_of_type, ref_path, resolve_material, skeletal_slots
 
 ITEMS_REL = os.path.join("Discovery", "Content", "Discovery", "Items")
@@ -108,6 +108,16 @@ def weapons(root):
             out.append({"id": sub, "dir": dirpath, "name": name, "folder": folder,
                         "category": sub.split("/")[0] if cat == "Melee" else sub.split("/")[1]})
             dirs[:] = []                     # a weapon's subfolders aren't weapons
+    # weapons from the shipped name list that aren't exported yet (listed as "not exported")
+    have = {w["id"] for w in out}
+    for sw in names.weapons():
+        if sw["id"] in have:
+            continue
+        name = sw["name"]
+        if name.endswith(f" ({sw['folder']})"):
+            name = name[:-len(f" ({sw['folder']})")]
+        out.append({"id": sw["id"], "dir": os.path.join(items, *sw["id"].split("/")), "name": name,
+                    "folder": sw["folder"], "category": sw["category"], "shipped": sw["skins"]})
     # same in-game name twice (e.g. two swords): add the folder
     counts = {}
     for w in out:
@@ -141,6 +151,12 @@ def skins(root, weapon):
     hit = _skins.get(key)
     if hit is not None:
         return hit
+    shipped = {s["id"]: s for sw in names.weapons() if sw["id"] == weapon["id"] for s in sw["skins"]}
+    if not os.path.isdir(weapon["dir"]):
+        out = [{"id": s["id"], "path": os.path.join(root, s["path"]) if s["path"] else "", "name": s["name"],
+                "image": s["image"], "variant": s["variant"]} for s in shipped.values()]
+        _skins[key] = out
+        return out
     sdir = os.path.join(weapon["dir"], "Skins")
     out = []
     dmeta = next((os.path.join(dp, f) for dp, _d, fs in os.walk(os.path.join(sdir, "Default"))
@@ -173,6 +189,12 @@ def skins(root, weapon):
     for s in out:
         if counts[s["name"]] > 1 and s["variant"]:
             s["name"] = f"{s['name']} ({s['variant']})"
+    # skins in the shipped list whose files aren't exported yet
+    have = {s["id"] for s in out}
+    for sid, s in shipped.items():
+        if sid not in have and sid != DEFAULT_SKIN:
+            out.append({"id": sid, "path": os.path.join(root, s["path"]) if s["path"] else "", "name": s["name"],
+                        "image": s["image"], "variant": s["variant"]})
     out[1:] = sorted(out[1:], key=lambda s: s["name"].lower())
     _skins[key] = out
     return out
@@ -248,17 +270,25 @@ def _is_atlas(finder, object_path):
 
 
 def status(root, weapon, skin):
-    """(level, text, [folders to export]): 2 = meshes + textures, 1 = some textures missing, 0 = a mesh missing."""
+    """(level, text, {kind: [folders to export]}): 2 = meshes + textures, 1 = some textures missing
+    or material files need re-saving, 0 = a mesh missing."""
     key = (root, weapon["id"], skin["id"])
     hit = _status.get(key)
     if hit is not None:
         return hit
+    if not os.path.isdir(weapon["dir"]):
+        res = _status[key] = (0, "Weapon not exported", {"Weapon": [f"Items/{weapon['id']}"]})
+        return res
+    if skin["path"] and not os.path.isfile(skin["path"]):
+        res = _status[key] = (0, "Skin not exported",
+                              {"Skin": [ui.game_folder(root, os.path.dirname(skin["path"]))]})
+        return res
     log = _QuietLog()
     finder = AssetFinder(root, [weapon["dir"]], log)
     vis = visual_path(root, weapon, skin)
     base, parts = visual_parts(vis) if vis else ("", [])
     meshes = ([base] if base else []) + list(dict.fromkeys(p["mesh"] for p in parts))
-    folders, missing_mesh, tex_missing = [], 0, 0
+    mesh_f, tex_f, flat_f, missing_mesh, tex_missing = [], [], [], 0, 0
     overrides = {}
     if skin["path"]:
         from .ue_assets import read_skin
@@ -267,28 +297,33 @@ def status(root, weapon, skin):
     for m in meshes:
         if not mesh_file(finder, m):
             missing_mesh += 1
-            folders.append(_folder(m))
+            mesh_f.append(_folder(m))
         for slot, mat in skeletal_slots(finder, asset_name(m))[0]:
             mat = overrides.get(slot.lower(), mat)
             if not mat or mat in seen:
                 continue
             seen.add(mat)
             params = resolve_material(finder, object_path=mat, log=log)
+            if params.flat_json:
+                flat_f.append(os.path.relpath(os.path.dirname(params.flat_json), root).replace("\\", "/")
+                              .split("Content/Discovery/", 1)[-1])
             for t in params.textures.values():
                 if not t or any(d in t for d in PLACEHOLDER_DIRS) or asset_name(t).lower() in ("defaulttexture",):
                     continue
                 if not finder.find_texture(t) and not _is_atlas(finder, t):
                     tex_missing += 1
-                    folders.append(_folder(t))
-    folders = list(dict.fromkeys(folders))
+                    tex_f.append(_folder(t))
+    groups = ui.split_folders(mesh_f, tex_f, flat_f)
     if not vis:
-        res = (0, "No visual definition found", [])
+        res = (0, "No visual definition found (export the weapon's Skins folder .json)", {})
     elif missing_mesh:
-        res = (0, f"{missing_mesh} mesh(es) not exported", folders)
+        res = (0, f"{missing_mesh} mesh(es) not exported", groups)
     elif tex_missing:
-        res = (1, f"{tex_missing} texture(s) not exported", folders)
+        res = (1, f"{tex_missing} texture(s) not exported", groups)
+    elif flat_f:
+        res = (1, "Material files need re-saving (see below)", groups)
     else:
-        res = (2, "Exported", [])
+        res = (2, "Exported", {})
     _status[key] = res
     return res
 
@@ -525,6 +560,11 @@ class FT_OT_weapon_import(bpy.types.Operator):
         if w is None:
             self.report({"ERROR"}, "Pick a weapon first (set the Exports folder if the list is empty)")
             return {"CANCELLED"}
+        level, text, groups = status(root, w, s)
+        if text in ("Weapon not exported", "Skin not exported"):
+            folder = next(iter(groups.values()))[0]
+            self.report({"ERROR"}, f"{text}: export {folder} in FModel (Copy Path), then Rescan")
+            return {"CANCELLED"}
         log = Log()
         try:
             objs = import_weapon(context, w, s, log)
@@ -602,27 +642,65 @@ class FT_OT_weapon_refresh(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def store_image(root, skin):
+    p = _game_path_to_file(root, skin["image"])[:-5] + ".png" if skin and skin.get("image") else ""
+    return p if p and os.path.isfile(p) else ""
+
+
+def _find(context, query):
+    """Weapons and skins whose name matches every word (skins of all weapons: read once, then cached)."""
+    root = _root(context)
+    q = query.lower().split()
+    out = []
+    for w in weapons(root):
+        if all(t in f"{w['name']} {w['folder']}".lower() for t in q):
+            out.append((f"{w['id']}|", w["name"], w["category"], -1, "TOOL_SETTINGS"))
+    for w in weapons(root):
+        for s in skins(root, w):
+            hay = f"{s['name']} {w['name']} {w['folder']}".lower()
+            if all(t in hay for t in q) and not all(t in f"{w['name']} {w['folder']}".lower() for t in q):
+                out.append((f"{w['id']}|{s['id']}", s["name"], w["name"], -1, "BRUSH_DATA"))
+        if len(out) > 120:
+            break
+    return out
+
+
+def _pick(context, ident):
+    sc = context.scene
+    wid, sid = ident.split("|", 1)
+    try:
+        sc.ft_weapon = wid
+        if sid:
+            sc.ft_weapon_skin = sid
+    except TypeError:
+        pass
+
+
+def _draw_options(col, context):
+    from . import _prefs
+    p = _prefs(context)
+    if p:
+        col.prop(p, "import_size", text="Size")
+
+
 def draw(layout, context):
     sc = context.scene
     root = _root(context)
-    if not root:
-        layout.label(text="Set the Exports folder first", icon="ERROR")
-        return
-    row = layout.row(align=True)
-    row.prop(sc, "ft_weapon", text="Weapon")
-    row.operator(FT_OT_weapon_refresh.bl_idname, text="", icon="FILE_REFRESH")
-    layout.prop(sc, "ft_weapon_skin", text="Skin")
+    search.draw(layout, context, "weap", "Search weapons and skins")
+    col = layout.column(align=True)
+    col.prop(sc, "ft_weapon", text="Weapon")
+    col.prop(sc, "ft_weapon_skin", text="Skin")
     root, w, s = _selected(context)
     if w is not None and s is not None:
-        level, text, folders = status(root, w, s)
-        col = layout.column(align=True)
-        col.label(text=text, icon=READY_ICON[level])
-        for f in folders[:4]:
-            col.label(text=f"Export: {f}", icon="EXPORT")
+        ui.draw_preview(layout, store_image(root, s))
+        level, text, groups = status(root, w, s)
+        ui.draw_status(layout, level, text, groups)
     row = layout.row(align=True)
-    row.operator(FT_OT_weapon_import.bl_idname, icon="IMPORT")
-    row.operator(FT_OT_weapon_apply.bl_idname, icon="MATERIAL")
-    layout.operator(FT_OT_weapon_image.bl_idname, icon="IMAGE_DATA")
+    row.operator(FT_OT_weapon_import.bl_idname, text="Import", icon="IMPORT")
+    row.operator(FT_OT_weapon_apply.bl_idname, text="Apply to Selected", icon="MATERIAL")
+    op = row.operator(ui.FT_OT_show_image.bl_idname, text="", icon="IMAGE_DATA")
+    op.path = store_image(root, s)
+    ui.draw_options(layout, context, "WEAPONS", lambda c: _draw_options(c, context))
 
 
 CLASSES = (FT_OT_weapon_import, FT_OT_weapon_apply, FT_OT_weapon_image, FT_OT_weapon_refresh)
@@ -637,9 +715,11 @@ def register(root_getter, report):
     bpy.types.Scene.ft_weapon_skin = EnumProperty(
         name="Skin", items=_skin_items,
         description="Weapon skin. Check = exported, i = some textures missing, warning = a mesh isn't exported")
+    search.add_tab("weap", _find, _pick, "Weapon or skin name")
 
 
 def unregister():
+    search.remove_tab("weap")
     del bpy.types.Scene.ft_weapon_skin
     del bpy.types.Scene.ft_weapon
     for c in reversed(CLASSES):

@@ -4,6 +4,7 @@
 
 <list file>: one item per line in dev_tools/regress.txt format:
     <mesh path relative to Characters> <skin name|AUTO|NONE> <out name> [...ignored]
+  or a face:  DA_Head_<...> <L|M|H> <out name>
 For each item: bake_ours.py (Blender) -> <work>/bake/<out name>/; every material instance it baked without an
 extracted shader is extracted (ShaderExtract, needs FT_GAME_PAKS / FT_AES / FT_USMAP / FT_FMODEL_DATA) into
 <work>/sm/; then compare_game.py -> <work>/cmp_<out name>.png. Prints one summary line per material slot.
@@ -43,8 +44,9 @@ def main():
             continue
         bake = os.path.join(work, "bake", name)
         print(f"== {name}: {mesh} [{skin}]", flush=True)
+        mode = ["--face", mesh] if mesh.startswith("DA_Head_") else ["--item", f"{CHARS}/{mesh}"]
         r = subprocess.run([BLENDER, "--factory-startup", "-b", "--python", os.path.join(HERE, "bake_ours.py"), "--",
-                            EXPORTS, "--item", f"{CHARS}/{mesh}", skin, bake, res],
+                            EXPORTS] + mode + [skin, bake, res],
                            capture_output=True, text=True, errors="replace")
         baked = re.findall(r"^BAKED (\S+) (\d+) (\S+) (\S*)", r.stdout, re.M)
         if not baked:
@@ -66,7 +68,7 @@ def main():
             if m:
                 print(f"   {m.group(2)[:60]:60s} {kinds.get(m.group(1), ''):14s} base {m.group(3)}  rough {m.group(4)}"
                       f"  metal {m.group(5)}")
-            elif "no extracted" in l or "rror" in l:
+            elif "no extracted" in l or "rror" in l or "skipped" in l:
                 print("  ", l[:200])
         if c.returncode:
             print("   compare failed:", c.stderr[-800:])

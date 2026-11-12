@@ -160,6 +160,10 @@ class Evaluator:
         cb0[160] = (0, 1, 0, 1)            # roughness / AO overrides: identity
         cb0[156] = (0, 0, 1, 0)
         cb0[319] = (0, 0, 1e9, 0)
+        # camera straight above every texel (surface normal +Z, world position 0): view-dependent terms
+        # (fresnel masks) are evaluated head-on, the case a static Blender value should match
+        cb0[121] = (0, 0, 1e4, 0)
+        cb0[122] = (0, 0, 1e4, 0)
         tex, names = self.textures(mp)
         g = tex.get(names.index("Gradient")) if "Gradient" in names else None
         row = cb2[0][0] / g.img.shape[-3] if g is not None else 0.5

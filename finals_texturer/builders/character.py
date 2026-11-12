@@ -41,7 +41,22 @@ def build_skin(ctx):
     normal = pick("BodyNormalMap", "HandsNormalMap", True, "Body / hands normals")
     if normal is not None:
         nb.feed(bsdf.inputs["Normal"], ctx.normal_map(normal))
-    nb.feed(bsdf.inputs["Roughness"], max(0.0, min(1.0, p.s("Roughness", 0.6))))
+    # Roughness (compiled M_Skin, 2026-11-12): Roughness x lerp(normal map alpha, 0.8, Schlick
+    # fresnel 0.04 + 0.96 (1 - N.V)^5); a flat Roughness came out ~25 % too rough.
+    rough = max(0.0, p.s("Roughness", 0.6))
+    nb_ = ctx.tex(p.t("BodyNormalMap"), data=True, label="BodyNormalMap")
+    nh_ = ctx.tex(p.t("HandsNormalMap"), data=True, label="HandsNormalMap")
+    if nb_ is not None or nh_ is not None:
+        if nb_ is None or nh_ is None:
+            na = (nb_ or nh_).outputs["Alpha"]
+        else:
+            na = nb.lerp(nb_.outputs["Alpha"], nh_.outputs["Alpha"], hands)
+        lw = nb.node("ShaderNodeLayerWeight", "Facing (1 - N.V)")
+        nb.feed(lw.inputs["Blend"], 0.5)
+        fres = nb.math("MULTIPLY_ADD", nb.math("POWER", lw.outputs["Facing"], 5.0), 0.96, 0.04, label="Schlick fresnel")
+        nb.feed(bsdf.inputs["Roughness"], nb.mul(nb.lerp(na, 0.8, fres), rough, clamp=True))
+    else:
+        nb.feed(bsdf.inputs["Roughness"], min(1.0, rough * 0.8))
     nb.feed(bsdf.inputs["Specular IOR Level"], max(0.0, min(1.0, p.s("Specular", 0.5))))
     ctx.finish(two_sided=bool(p.two_sided))
 
@@ -62,12 +77,10 @@ def build_face(ctx):
     # Face normal maps keep the normal in R/G only; B holds something else
     # (vector length ~0.2-0.4 if read as XYZ, which gave dark blotches).
     # Rebuilding Z from R/G is also right for ordinary normal maps.
-    n = ctx.tex(p.t("Normal"), data=True, packed=True, label="Normal (R/G; B unused)")
+    n = ctx.tex(p.t("Normal"), data=True, packed=True, label="Normal (R/G normal, B roughness)")
     if n is not None:
         nb.feed(bsdf.inputs["Normal"], _packed_normal(ctx, n)[0])
-    rough = p.s("Zone_Roughness", 0.55) * p.s("RoughnessMultiplier", 1.0)
-    nb.feed(bsdf.inputs["Roughness"], max(0.0, min(1.0, rough)))
-    nb.feed(bsdf.inputs["Specular IOR Level"], max(0.0, min(1.0, p.s("Specular", 0.5))))
+    _face_surface(ctx, bsdf, n, c)
     # The head mesh reaches over the shoulders and fades out into the body:
     # M_Face's fixed T_Face_NeckFade (white = head, black at the UV's bottom
     # edge) x FadeAmount is the opacity (dithered in game, hashed here).
@@ -84,6 +97,52 @@ def build_face(ctx):
             nb.feed(bsdf.inputs["Alpha"], nb.map_range(amount, clip, min(clip + 0.35, 1.0), 0.0, 1.0,
                                                        label=f"Opacity clip {clip:g} (soft)"))
     ctx.finish(two_sided=bool(p.two_sided))
+
+
+HEAD_TEX = "/Game/Discovery/Characters/Heads/Shared/Textures/"
+
+
+def _face_surface(ctx, bsdf, normal, color):
+    """M_Face roughness and specular, from the compiled shader (2026-11-12):
+      rough = normal B, capped by lerp(Zone_Roughness, 1, zone mask G) and on the lips
+              (Mask Texture B = 0) by 1 - Lip Roughness; x RoughnessMultiplier
+              + (1 - BaseColor A) x Cavity Roughness + (1 - micro) x Micro Cavity Roughness,
+              micro = max(micro-normal B, 1 - Mask B); → Hair Roughness under the stubble mask
+      spec  = lerp(LipSpecular, Specular, Mask B) x (1 + (BaseColor A - 1) x Specular Cavity Amount)
+              x (1 + (micro - 1) x Specular MicroCavity Amount); → Hair Specular under the stubble
+    The view-dependent fresnel terms (face fresnel x Mask R) are left out."""
+    p, nb = ctx.p, ctx.nb
+    one = lambda x: x if x is not None else 1.0
+    nb_b = nb.separate(normal.outputs["Color"])[2] if normal is not None else 0.5
+    mask = ctx.tex(p.t("Mask Texture"), data=True, label="Mask Texture (R fresnel, G subsurface, B not-lips)")
+    mask_b = nb.separate(mask.outputs["Color"])[2] if mask is not None else 1.0
+    zone = ctx.tex(HEAD_TEX + "T_ContestantHeads_ZONEMASKS.T_ContestantHeads_ZONEMASKS", data=True,
+                   label="Zone masks (G)")
+    zone_g = nb.separate(zone.outputs["Color"])[1] if zone is not None else 0.0
+    cav = color.outputs["Alpha"] if color is not None else 1.0
+    micro_t = ctx.tex(HEAD_TEX + "Head_01_MicroNormal.Head_01_MicroNormal", data=True,
+                      scale=p.s("Tile_Size", 1.0) or 1.0, label="Micro normal (B micro cavity)")
+    micro_b = nb.separate(micro_t.outputs["Color"])[2] if micro_t is not None else 1.0
+    micro = nb.math("MAXIMUM", micro_b, nb.sub(1.0, mask_b))
+    hair_t = ctx.tex(p.t("Hair NXA"), data=True, packed=True, label="Hair NXA (stubble, A = mask)")
+    hair = nb.mul(hair_t.outputs["Alpha"], p.s("Hair Mask Amount", 1.0), clamp=True) if hair_t is not None else 0.0
+
+    zr = p.s("Zone_Roughness", 0.55)
+    rough = nb.math("MINIMUM", nb_b, nb.lerp(zr, 1.0, zone_g))
+    rough = nb.math("MINIMUM", rough, nb.math("MAXIMUM", mask_b, 1.0 - p.s("Lip Roughness", 0.0)))
+    rough = nb.math("MULTIPLY_ADD", rough, p.s("RoughnessMultiplier", 1.0),
+                    nb.mul(nb.sub(1.0, cav), p.s("Cavity Roughness", 0.0)))
+    rough = nb.math("MULTIPLY_ADD", nb.sub(1.0, micro), p.s("Micro Cavity Roughness", 0.0), rough)
+    if hair != 0.0:
+        rough = nb.lerp(rough, p.s("Hair Roughness", 0.5), hair)
+    nb.feed(bsdf.inputs["Roughness"], nb.clamp01(rough))
+
+    spec = nb.lerp(p.s("LipSpecular", 0.5), p.s("Specular", 0.5), mask_b)
+    spec = nb.mul(spec, nb.math("MULTIPLY_ADD", nb.sub(cav, 1.0), p.s("Specular Cavity Amount", 0.0), 1.0))
+    spec = nb.mul(spec, nb.math("MULTIPLY_ADD", nb.sub(micro, 1.0), p.s("Specular MicroCavity Amount", 0.0), 1.0))
+    if hair != 0.0:
+        spec = nb.lerp(spec, p.s("Hair Specular", 0.5), hair)
+    nb.feed(bsdf.inputs["Specular IOR Level"], nb.clamp01(spec))
 
 
 GREY_IRIS = ("/Game/Discovery/Characters/Heads/Shared/Eyes/Textures/"
@@ -160,7 +219,9 @@ def build_eyelash(ctx):
     p, nb = ctx.p, ctx.nb
     bsdf = ctx.bsdf()
     nb.feed(bsdf.inputs["Base Color"], _col(p.v("Eyelash Color", (0.02, 0.012, 0.006, 1))))
-    nb.feed(bsdf.inputs["Roughness"], 0.6)
+    # compiled M_EyelashMaster: roughness 0.5, no specular
+    nb.feed(bsdf.inputs["Roughness"], 0.5)
+    nb.feed(bsdf.inputs["Specular IOR Level"], 0.0)
     t = ctx.tex(p.t("Eyelash Texture"), data=True, label="Eyelash Texture")
     if t is not None:
         rng = _alpha_range(t.image)
@@ -220,56 +281,68 @@ GLITTER_TEX = ("/Game/Discovery/MaterialLibrary/Character/CustomMaterials/Textur
 
 
 def build_glitter(ctx):
-    """M_Skin_Glitter (BlankFace AbsorbeGlitter head and body), approximated.
-
-    From in-game screenshots and the user's notes (2026-11-11): the skin is
-    pitch black everywhere, very glossy; the only colour comes from
-    reflections and from tiny specks near the silhouette (mostly whitish
-    ColorD, some ColorB / ColorC), scaled by EmissiveIntensity.
-    The built-in T_Glitter_01_X (R/G flake normals, B smudge, A per-flake
-    seed) tiles over the **UVs** x Tiling: the head (4) and body (8) values
-    are set so one tile is ~11 cm on both (46 vs 88 cm per UV unit).
-    x3 on top makes the specks as small as in game (~1 mm).
-    """
+    """M_Skin_Glitter (BlankFace AbsorbeGlitter head and body), recreated from
+    the compiled shader (2026-11-12):
+    * base colour 0.02 grey; T_Glitter_01_X on UV1 x Tiling (R/G flake normals);
+    * flake seed = frac(A - 0.2 B) (the game also scrolls it with time, making
+      the flakes twinkle); sparkle m = min(seed^2 x (1 - N.V)^4, 1);
+    * metallic 0.8 → 1 and roughness 0.2 → 0.01 by m;
+    * emission = palette(3 seed: ColorA → B → C → D) x m x EmissiveIntensity
+      + a thin rim highlight near the silhouette on upward-facing surfaces,
+      colour (5 (0.733 - 0.727 x), 5 (0.184 - 0.018 x), 4.77) with x = the
+      view-space normal's X (pink on one side, blue on the other).
+    The previous hand-tuned look (pitch black, clear coat, specks x3 smaller)
+    is in git history (0.10.0) if this one looks worse."""
     p, nb = ctx.p, ctx.nb
     bsdf = ctx.bsdf()
-    tiling = (p.s("Tiling", 4.0) or 4.0) * 3.0
+    tiling = p.s("Tiling", 4.0) or 4.0
+    nb.feed(bsdf.inputs["Base Color"], (0.02, 0.02, 0.02, 1.0))
+    nb.feed(bsdf.inputs["Specular IOR Level"], 0.5)
     tex = ctx.tex(GLITTER_TEX, data=True, packed=True, scale=tiling, label=f"T_Glitter_01_X (UV x {tiling:g})")
-    nb.feed(bsdf.inputs["Base Color"], (0.0, 0.0, 0.0, 1.0))      # pitch black in game
-    nb.feed(bsdf.inputs["Roughness"], 0.06)
-    nb.feed(bsdf.inputs["Specular IOR Level"], 1.0)
-    nb.feed(bsdf.inputs["Coat Weight"], 1.0)
-    nb.feed(bsdf.inputs["Coat Roughness"], 0.0)
-    nb.feed(bsdf.inputs["Coat IOR"], 1.6)
     if tex is None:
+        nb.feed(bsdf.inputs["Metallic"], 0.8)
+        nb.feed(bsdf.inputs["Roughness"], 0.2)
         ctx.finish(two_sided=bool(p.two_sided))
         return
-    flake_n, smudge = _packed_normal(ctx, tex, strength=0.25)
-    nb.feed(bsdf.inputs["Normal"], flake_n)
-    # Specks = the brightest per-flake seeds. With smooth filtering the GPU
-    # blends far-away texels (mipmaps), the seed never reaches the threshold
-    # and the specks vanish with distance, at a different distance on the
-    # arms (another UV scale) with a visible line. Unfiltered sampling keeps
-    # every speck at any distance, like glitter sparkling in game.
-    raw = ctx._image_node(ctx.finder.find_texture(GLITTER_TEX), True, True, "T_Glitter_01_X (unfiltered, specks)",
+    # flake normal x/y = 0.4 (R/G - 0.5) in game = strength 0.2 (0.4 was twice as bumpy: noisy reflections)
+    nb.feed(bsdf.inputs["Normal"], _packed_normal(ctx, tex, strength=0.2)[0])
+    # seed from an unfiltered copy: mipmapped averages blur the per-flake seeds away with distance
+    raw = ctx._image_node(ctx.finder.find_texture(GLITTER_TEX), True, True, "T_Glitter_01_X (unfiltered, seeds)",
                           "REPEAT")
     raw.interpolation = "Closest"
     nb.feed(raw.inputs["Vector"], ctx.uv(tiling))
-    seed = raw.outputs["Alpha"]
-    smudge = nb.separate(raw.outputs["Color"])[2]
-    view = nb.node("ShaderNodeLayerWeight", "Facing")
-    view.inputs["Blend"].default_value = 0.5
-    edge = nb.map_range(view.outputs["Facing"], 0.55, 0.88, 0.0, 1.0, mode="SMOOTHSTEP", label="Toward the edges")
-    speck = nb.map_range(seed, 0.86, 0.93, 0.0, 1.0, label="Sparse specks")
-    # even a few % shows against pitch black: the front stays almost clean
-    speck = nb.math("MULTIPLY", speck, edge, label="Toward the edges only")
-    tint = nb.mix(_hsv_norm(nb, _col(p.v("ColorB", (0.07, 0.02, 0.15, 1))), 1.0, label="ColorB hue"),
-                  _hsv_norm(nb, _col(p.v("ColorC", (0.04, 0.13, 0.43, 1))), 1.0, label="ColorC hue"),
-                  smudge, label="ColorB / ColorC per speck")
-    white = _hsv_norm(nb, _col(p.v("ColorD", (1.78, 1.27, 2.0, 1))), 1.0, sat_scale=0.3, label="ColorD (whitish)")
-    speck_col = nb.mix(tint, white, nb.map_range(smudge, 0.2, 0.5, 0.0, 1.0), label="Most specks whitish, some tinted")
-    nb.feed(bsdf.inputs["Emission Color"], nb.mix((0, 0, 0, 1), speck_col, speck, label="Specks"))
-    nb.feed(bsdf.inputs["Emission Strength"], max(p.s("EmissiveIntensity", 5.0), 0.0) * 1.6)
+    _r, _g, blue = nb.separate(raw.outputs["Color"])
+    seed = nb.math("FRACT", nb.math("MULTIPLY_ADD", blue, -0.2, raw.outputs["Alpha"]), label="Flake seed")
+    lw = nb.node("ShaderNodeLayerWeight", "Facing (1 - N.V)")
+    nb.feed(lw.inputs["Blend"], 0.5)
+    x = lw.outputs["Facing"]
+    m = nb.math("MINIMUM", nb.mul(nb.mul(seed, seed), nb.math("POWER", x, 4.0)), 1.0, label="Sparkle")
+    nb.feed(bsdf.inputs["Metallic"], nb.math("MULTIPLY_ADD", m, 0.2, 0.8))
+    # game: 0.2 → 0.01; 0.12 here because Blender keeps the flake bumps sharp where the game blurs them
+    # with distance (user: "a bit more glossy" between the flakes)
+    nb.feed(bsdf.inputs["Roughness"], nb.math("MULTIPLY_ADD", m, -0.11, 0.12))
+    t = nb.mul(seed, 3.0)
+    pal = nb.mix(_col(p.v("ColorA", (0.001, 0.001, 0.01, 1))), _col(p.v("ColorB", (0.074, 0.017, 0.15, 1))),
+                 nb.clamp01(t), label="ColorA → B")
+    pal = nb.mix(pal, _col(p.v("ColorC", (0.037, 0.127, 0.426, 1))), nb.clamp01(nb.sub(t, 1.0)), label="→ C")
+    pal = nb.mix(pal, _col(p.v("ColorD", (1.778, 1.271, 2.0, 1))), nb.clamp01(nb.sub(t, 2.0)), label="→ D")
+    em = nb.vmath("SCALE", pal, scale=nb.mul(m, max(p.s("EmissiveIntensity", 5.0), 0.0)), label="Flake emission")
+    # rim: min((2.5 x (1 - N.V)^0.53 x f)^64 x 100, 1) x upward-facing, f = 1 - N.V
+    ndv = nb.sub(1.0, x)
+    f = nb.mul(nb.mul(x, nb.math("POWER", ndv, 0.53)), 2.5)
+    rim = nb.math("MINIMUM", nb.mul(nb.math("POWER", f, 64.0), 100.0), 1.0)
+    geo = nb.node("ShaderNodeNewGeometry")
+    _nx, _ny, nz = nb.separate(geo.outputs["Normal"])
+    rim = nb.math("MULTIPLY", rim, nb.clamp01(nz), label="Rim (upward-facing)")
+    vt = nb.node("ShaderNodeVectorTransform", "View-space normal", vector_type="NORMAL",
+                 convert_from="WORLD", convert_to="CAMERA")
+    nb.feed(vt.inputs[0], geo.outputs["Normal"])
+    vx = nb.separate(vt.outputs[0])[0]
+    rim_col = nb.combine(nb.math("MULTIPLY_ADD", vx, -3.635, 3.665), nb.math("MULTIPLY_ADD", vx, -0.09, 0.92), 4.77,
+                         label="Rim colour (pink ↔ blue)")
+    em = nb.vmath("ADD", em, nb.vmath("SCALE", rim_col, scale=rim), label="Flakes + rim")
+    nb.feed(bsdf.inputs["Emission Color"], em)
+    nb.feed(bsdf.inputs["Emission Strength"], 1.0)
     ctx.finish(two_sided=bool(p.two_sided))
 
 

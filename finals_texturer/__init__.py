@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Finals Texturer",
     "author": "Finals Texturer contributors",
-    "version": (0, 10, 0),
+    "version": (0, 13, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Finals",
     "description": "Imports The Finals clothing (.psk) and rebuilds its layered materials from FModel exports",
@@ -16,8 +16,8 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
-from . import character, importer, library_ui, rigging, weapons
-from .ue_assets import AssetFinder, Log, find_skins
+from . import character, clothing_tab, importer, library_ui, rigging, search, ui, weapons
+from .ue_assets import AssetFinder, Log
 
 ADDON_ID = __package__ or __name__
 
@@ -49,28 +49,12 @@ class FT_Preferences(bpy.types.AddonPreferences):
                 "a Medium body is 1.68 m. The scale is applied to the mesh and bones (object scale stays 1)"),
                ("GAME", "Game units (centimetres)", "Keep the game's units: 1 Blender unit = 1 cm, "
                 "a Medium body is 168 units tall")),
-        default="REAL",
+        default="GAME",
     )
 
     def draw(self, context):
         self.layout.prop(self, "export_root")
         self.layout.prop(self, "import_size")
-
-
-# ── skin list for the active object ─────────────────────────────────────────
-_skin_items_cache = []
-
-
-def _skin_items(self, context):
-    items = [("AUTO", "Auto (default skin, else first found)", "Use the item's default skin if it has one, otherwise the first skin in its Skins folder"),
-             ("NONE", "None (base materials)", "Use the mesh's own materials")]
-    obj = context.object if context else None
-    mesh_dir = obj.get("ft_source_dir", "") if obj else ""
-    if mesh_dir:
-        for name, path in find_skins(mesh_dir):
-            items.append((path, name, path))
-    _skin_items_cache[:] = items     # Blender needs the strings kept alive
-    return _skin_items_cache
 
 
 def _set_numbers(self, context):
@@ -82,7 +66,20 @@ def _set_numbers(self, context):
             n.outputs[0].default_value = float(self.ft_number)
 
 
+def _flat_warning(log):
+    """Material files that FModel's mesh export flattened: name the folders to re-save."""
+    flat = getattr(log, "flat_jsons", None)
+    if not flat:
+        return
+    root = _root(bpy.context)
+    folders = sorted({os.path.relpath(os.path.dirname(p), root).replace("\\", "/").split("Content/Discovery/", 1)[-1]
+                      for p in flat})
+    log.warn("Some material files were overwritten by FModel's model export (no parent material in them). "
+             "In FModel, run 'Save Folder's Packages Properties (.json)' again on: " + ", ".join(folders))
+
+
 def _report(op, log, done):
+    _flat_warning(log)
     importer.write_log(log)
     msg = f"Built {done} material(s)"
     if log.warnings:
@@ -145,36 +142,17 @@ class FT_OT_import(bpy.types.Operator, ImportHelper):
         return {"FINISHED"}
 
 
-class FT_OT_apply(bpy.types.Operator):
-    """Rebuild materials on the selected meshes using the chosen skin"""
-    bl_idname = "finals_texturer.apply"
-    bl_label = "Apply Materials"
-    bl_options = {"REGISTER", "UNDO"}
-
-    def execute(self, context):
-        log = Log()
-        skin = context.scene.ft_skin if context.scene.ft_skin else "AUTO"
-        done = 0
-        objs = [o for o in context.selected_objects if o.type == "MESH"]
-        if not objs:
-            self.report({"WARNING"}, "Select one or more meshes first")
-            return {"CANCELLED"}
-        for o in objs:
-            done += importer.apply_to_object(o, _root(context), skin, log)
-        _report(self, log, done)
-        return {"FINISHED"}
-
-
 class FT_OT_rescan(bpy.types.Operator):
-    """Forget cached file lists (use after exporting more files from FModel)"""
+    """Re-read the export folder: item lists and what's exported (use after exporting more from FModel)"""
     bl_idname = "finals_texturer.rescan"
-    bl_label = "Rescan Export Folder"
+    bl_label = "Rescan"
 
     def execute(self, context):
         AssetFinder.clear_cache()
         character.clear_cache()
         weapons.clear_cache()
-        self.report({"INFO"}, "File index cleared")
+        clothing_tab.clear_cache()
+        self.report({"INFO"}, "Re-read the export folder")
         return {"FINISHED"}
 
 
@@ -216,45 +194,37 @@ class FT_PT_panel(bpy.types.Panel):
         lay = self.layout
         # Shared by all tabs: every import reads from the Exports folder.
         p = _prefs(context)
-        if p:
-            lay.prop(p, "export_root", text="Exports")
+        root = _root(context)
+        ok = ui.draw_root(lay, p, root) if p else False
         lay.row().prop(context.window_manager, "ft_tab", expand=True)
         tab = context.window_manager.ft_tab
         if tab == "RIGGING":
             rigging.draw(lay, context)
-            return
-        if tab == "CHARACTER":
+        elif not ok:
+            lay.label(text="Set the Exports folder above first", icon="INFO")
+        elif tab == "CHARACTER":
             character.draw(lay, context)
         elif tab == "WEAPONS":
             weapons.draw(lay, context)
         else:
-            self.draw_clothing(lay, context)
-        row = lay.row(align=True)
-        row.operator(FT_OT_show_log.bl_idname, icon="TEXT")
-        row.operator(FT_OT_rescan.bl_idname, icon="FILE_REFRESH")
-
-    def draw_clothing(self, lay, context):
-        lay.operator(FT_OT_import.bl_idname, icon="IMPORT")
-        box = lay.box()
-        obj = context.object
-        if obj and obj.get("ft_source_dir"):
-            box.label(text=f"Source: {obj.get('ft_source_mesh', '')}", icon="MESH_DATA")
-        box.prop(context.scene, "ft_skin", text="Skin")
-        box.operator(FT_OT_apply.bl_idname, icon="MATERIAL")
-        box.prop(context.scene, "ft_number", text="Number decals")
+            clothing_tab.draw(lay, context)
+        ui.draw_footer(lay)
 
 
 def _menu_import(self, context):
     self.layout.operator(FT_OT_import.bl_idname, text="The Finals item (.psk)")
 
 
-CLASSES = (FT_Preferences, FT_OT_import, FT_OT_apply, FT_OT_rescan, FT_OT_show_log, FT_PT_panel)
+CLASSES = (FT_Preferences, FT_OT_import, FT_OT_rescan, FT_OT_show_log, FT_PT_panel)
 
 
 def register():
+    ui.register()
+    search.register()
     for c in CLASSES:
         bpy.utils.register_class(c)
     library_ui.register(_root, ADDON_ID, _report)
+    clothing_tab.register(_root, _report)
     character.register(_root, _report)
     weapons.register(_root, _report)
     rigging.register()
@@ -265,7 +235,6 @@ def register():
                ("WEAPONS", "Weapons", "Import weapons with their skins", "TOOL_SETTINGS", 3),
                ("RIGGING", "Rigging", "Simplify the game rig, attach clothing, Auto-Rig Pro controls",
                 "ARMATURE_DATA", 2)))
-    bpy.types.Scene.ft_skin = EnumProperty(name="Skin", items=_skin_items)
     bpy.types.Scene.ft_number = IntProperty(
         name="Number decals", min=0, max=99, default=8, update=_set_numbers,
         description="Number shown by number decals (jersey numbers etc.). The game sets it per "
@@ -274,13 +243,15 @@ def register():
 
 
 def unregister():
+    clothing_tab.unregister()
     library_ui.unregister()
     rigging.unregister()
     character.unregister()
     weapons.unregister()
     del bpy.types.WindowManager.ft_tab
     bpy.types.TOPBAR_MT_file_import.remove(_menu_import)
-    del bpy.types.Scene.ft_skin
     del bpy.types.Scene.ft_number
     for c in reversed(CLASSES):
         bpy.utils.unregister_class(c)
+    search.unregister()
+    ui.unregister()

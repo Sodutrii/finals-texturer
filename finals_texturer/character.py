@@ -21,7 +21,7 @@ import zlib
 import bpy
 from bpy.props import BoolProperty, EnumProperty
 
-from . import importer, shapekeys
+from . import importer, names, search, shapekeys, ui
 from .ue_assets import AssetFinder, Log, asset_name, export_of_type, ref_path, resolve_material, \
     skeletal_slots, tag_overrides
 from . import defaults
@@ -135,6 +135,12 @@ def faces(root):
                 name, real = _display_name(path)
                 out.append({"id": os.path.relpath(path, root).replace("\\", "/"), "path": path,
                             "name": name, "real": real})
+    # faces from the shipped name list that aren't exported yet
+    have = {f["id"] for f in out}
+    for sf in names.faces():
+        if sf["id"] not in have:
+            out.append({"id": sf["id"], "path": os.path.join(root, *sf["id"].split("/")), "name": sf["name"],
+                        "real": sf["real"]})
     out.sort(key=lambda e: (not e["real"], e["name"].lower()))
     _faces[root] = out
     return out
@@ -184,46 +190,57 @@ def _used_textures(finder, root, mat, log):
     hit = _mat_tex.get(key)
     if hit is None:
         params = resolve_material(finder, object_path=mat, log=log)
-        hit = [params.t(n) for n in USED_TEXTURES.get(defaults.shader_type(params), ())]
-        hit = [t for t in hit if t and asset_name(t).lower() not in defaults.NULL_TEXTURES]
-        _mat_tex[key] = hit
+        tex = [params.t(n) for n in USED_TEXTURES.get(defaults.shader_type(params), ())]
+        tex = [t for t in tex if t and asset_name(t).lower() not in defaults.NULL_TEXTURES]
+        hit = _mat_tex[key] = (tex, params.flat_json)
     return hit
 
 
 def status(root, face, cls):
-    """(ready level, text, [game folders to export]) for a face and class.
-    2 = meshes and textures exported, 1 = meshes but some textures, 0 = a mesh is missing."""
+    """(ready level, text, {kind: [game folders to export]}) for a face and class.
+    2 = meshes and textures exported, 1 = meshes but some textures (or material files need
+    re-saving), 0 = a mesh is missing."""
     key = (root, face["id"], cls)
     hit = _status.get(key)
     if hit is not None:
         return hit
+    if not os.path.isfile(face["path"]):
+        res = _status[key] = (0, "Face not exported",
+                              {"Face": [ui.game_folder(root, os.path.dirname(os.path.dirname(face["path"])))]})
+        return res
     log = _QuietLog()
     finder = AssetFinder(root, [os.path.dirname(face["path"])], log)
     parts = face_parts(finder, face["path"], cls)
-    folders, missing_mesh = [], 0
+    mesh_f, tex_f, flat_f, missing_mesh = [], [], [], 0
     overrides = importer.read_skin(finder, face["path"], tags=tags_for(cls))[0]
     overrides = {k.lower(): v for k, v in overrides.items()}
     tex_missing = 0
     for path, _kind, _role in parts:
         if not mesh_file(finder, path):
             missing_mesh += 1
-            folders.append(_folder(path))
+            mesh_f.append(_folder(path))
         slots, _p = skeletal_slots(finder, asset_name(path))
         for slot, mat in slots:
             mat = overrides.get(slot.lower(), mat)
             if not mat:
                 continue
-            for tex in _used_textures(finder, root, mat, log):
+            texs, flat = _used_textures(finder, root, mat, log)
+            if flat:
+                flat_f.append(os.path.relpath(os.path.dirname(flat), root).replace("\\", "/")
+                              .split("Content/Discovery/", 1)[-1])
+            for tex in texs:
                 if not finder.find_texture(tex):
                     tex_missing += 1
-                    folders.append(_folder(tex))
-    folders = list(dict.fromkeys(folders))
+                    tex_f.append(_folder(tex))
+    groups = ui.split_folders(mesh_f, tex_f, flat_f)
     if missing_mesh:
-        res = (0, f"{missing_mesh} mesh(es) not exported", folders)
+        res = (0, f"{missing_mesh} mesh(es) not exported", groups)
     elif tex_missing:
-        res = (1, f"{tex_missing} texture(s) not exported", folders)
+        res = (1, f"{tex_missing} texture(s) not exported", groups)
+    elif flat_f:
+        res = (1, "Material files need re-saving (see below)", groups)
     else:
-        res = (2, "Exported", [])
+        res = (2, "Exported", {})
     _status[key] = res
     return res
 
@@ -483,6 +500,10 @@ class FT_OT_char_import(bpy.types.Operator):
         if face is None:
             self.report({"ERROR"}, "Pick a face first (set the Exports folder if the list is empty)")
             return {"CANCELLED"}
+        if not os.path.isfile(face["path"]):
+            folder = status(root, face, sc.ft_char_class)[2]["Face"][0]
+            self.report({"ERROR"}, f"Face not exported: export {folder} in FModel (Copy Path), then Rescan")
+            return {"CANCELLED"}
         log = Log()
         try:
             objs = import_character(context, face, sc.ft_char_class, sc.ft_char_gender.lower(),
@@ -540,31 +561,64 @@ class FT_OT_char_refresh(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def draw(layout, context):
-    sc = context.scene
+def store_image(face):
+    """The face's store image (T_UI_*.png next to its DA), or ""."""
+    import glob
+    hits = sorted(glob.glob(os.path.join(os.path.dirname(face["path"]), "T_UI_*.png"))) if face else []
+    return hits[0] if hits else ""
+
+
+def _find(context, query):
     root = _root(context)
-    if not root:
-        layout.label(text="Set the Exports folder first", icon="ERROR")
-        return
-    layout.row().prop(sc, "ft_char_class", expand=True)
-    row = layout.row(align=True)
-    row.prop(sc, "ft_char_face", text="Face")
-    row.operator(FT_OT_char_refresh.bl_idname, text="", icon="FILE_REFRESH")
-    face = face_by_id(root, sc.ft_char_face)
-    if face is not None:
-        level, text, folders = status(root, face, sc.ft_char_class)
-        col = layout.column(align=True)
-        col.label(text=text, icon=READY_ICON[level])
-        for f in folders[:4]:
-            col.label(text=f"Export: {f}", icon="EXPORT")
-    row = layout.row(align=True)
+    q = query.lower().split()
+    cls = context.scene.ft_char_class
+    out = []
+    for f in faces(root):
+        hay = f"{f['name']} {f['id']}".lower()
+        if all(t in hay for t in q):
+            out.append((f["id"], f["name"], os.path.basename(os.path.dirname(f["path"])),
+                        status(root, f, cls)[0], "USER"))
+    return out[:80]
+
+
+def _pick(context, ident):
+    try:
+        context.scene.ft_char_face = ident
+    except TypeError:
+        pass
+
+
+def _draw_options(col, context):
+    sc = context.scene
+    row = col.row(align=True)
     row.prop(sc, "ft_char_gender", expand=True)
     sub = row.row()
     sub.enabled = sc.ft_char_class == "H"
     sub.prop(sc, "ft_char_muscular")
+    from . import _prefs
+    p = _prefs(context)
+    if p:
+        col.prop(p, "import_size", text="Size")
+
+
+def draw(layout, context):
+    sc = context.scene
+    root = _root(context)
+    search.draw(layout, context, "char", "Search faces")
+    col = layout.column(align=True)
+    col.row().prop(sc, "ft_char_class", expand=True)
+    col.prop(sc, "ft_char_face", text="Face")
+    face = face_by_id(root, sc.ft_char_face)
+    if face is not None:
+        ui.draw_preview(layout, store_image(face))
+        level, text, groups = status(root, face, sc.ft_char_class)
+        ui.draw_status(layout, level, text, groups)
     row = layout.row(align=True)
-    row.operator(FT_OT_char_import.bl_idname, icon="IMPORT")
-    row.operator(FT_OT_char_update.bl_idname, icon="FILE_REFRESH")
+    row.operator(FT_OT_char_import.bl_idname, text="Import", icon="IMPORT")
+    row.operator(FT_OT_char_update.bl_idname, text="Apply to Selected", icon="MATERIAL")
+    op = row.operator(ui.FT_OT_show_image.bl_idname, text="", icon="IMAGE_DATA")
+    op.path = store_image(face)
+    ui.draw_options(layout, context, "CHARACTER", lambda c: _draw_options(c, context))
 
 
 CLASSES = (FT_OT_char_import, FT_OT_char_update, FT_OT_char_refresh)
@@ -587,9 +641,11 @@ def register(root_getter, report):
         items=(("MALE", "Male", "Masculine body shape"), ("FEMALE", "Female", "Feminine body shape")))
     bpy.types.Scene.ft_char_muscular = BoolProperty(
         name="Muscular", description="Muscular body shape (Heavy class only)")
+    search.add_tab("char", _find, _pick, "Face name or number")
 
 
 def unregister():
+    search.remove_tab("char")
     for p in ("ft_char_class", "ft_char_face", "ft_char_gender", "ft_char_muscular"):
         delattr(bpy.types.Scene, p)
     for c in reversed(CLASSES):

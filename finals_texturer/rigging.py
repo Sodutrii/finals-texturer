@@ -706,33 +706,42 @@ class FT_OT_rig_arp(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def _draw_options(col, ctx):
+    p = ctx.scene.ft_rig
+    col.label(text="Body")
+    col.prop(p, "hip_follow")
+    col.prop(p, "tidy")
+    col.label(text="Clothing / gear")
+    col.prop(p, "auto_shapekeys")
+    col.prop(p, "delete_src")
+    col.label(text="Auto-Rig Pro")
+    row = col.row()
+    row.prop(p, "arm_mode")
+    row.prop(p, "leg_mode")
+
+
 def draw(layout, ctx):
+    from . import ui
     p = ctx.scene.ft_rig
     b = layout.box()
     b.label(text="1. Body", icon="ARMATURE_DATA")
-    b.prop(p, "hip_follow")
-    b.prop(p, "tidy")
     b.operator(FT_OT_rig_simplify.bl_idname, icon="MOD_DECIM")
     b.prop(p, "master")
 
     b = layout.box()
     b.label(text="2. Clothing / Gear", icon="MOD_CLOTH")
-    b.prop(p, "auto_shapekeys")
-    b.prop(p, "delete_src")
-    b.operator(FT_OT_rig_attach.bl_idname, icon="LINKED").all_unbound = False
-    op = b.operator(FT_OT_rig_attach.bl_idname, text="Attach ALL Unbound Pieces", icon="SELECT_EXTEND")
-    op.all_unbound = True
+    row = b.row(align=True)
+    row.operator(FT_OT_rig_attach.bl_idname, text="Attach Selected", icon="LINKED").all_unbound = False
+    row.operator(FT_OT_rig_attach.bl_idname, text="Attach All Unbound", icon="SELECT_EXTEND").all_unbound = True
     if p.master:
         n = len(unbound_pieces(p.master))
-        b.label(text=f"{n} unbound piece(s) in scene")
+        b.label(text=f"{n} unbound piece(s) in scene", icon="INFO" if n else "CHECKMARK")
 
     b = layout.box()
     b.label(text="3. Auto-Rig Pro", icon="POSE_HLT")
-    row = b.row()
-    row.prop(p, "arm_mode")
-    row.prop(p, "leg_mode")
     b.operator(FT_OT_rig_arp.bl_idname, icon="OUTLINER_OB_ARMATURE")
     b.prop(p, "arp_rig")
+    ui.draw_options(layout, ctx, "RIGGING", lambda c: _draw_options(c, ctx))
 
 
 CLASSES = (FT_RigProps, FT_OT_rig_simplify, FT_OT_rig_attach, FT_OT_rig_arp)

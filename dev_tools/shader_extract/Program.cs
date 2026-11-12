@@ -6,6 +6,7 @@
 //   FT_FMODEL_DATA FModel's .data folder (oodle / zlib dlls)
 // Usage: dotnet run -- <out dir> <material package path> [<material package path> ...]
 //        dotnet run -- <out dir> --probe            (dump the shader libraries)
+//        dotnet run -- <out dir> --dump <folder>... (packages' JSON in FModel's format, see Dump.cs)
 // Per material, <out dir>/<name>/ gets: every pixel shader (.dxbc / .asm), base_pass.asm (the largest
 // pixel shader = the base pass that writes the G-buffer), shaders.txt, material_layout.json (the uniform
 // expression set: parameters, preshaders, texture parameters; TextureIndex values index the master's
@@ -40,6 +41,7 @@ provider.SubmitKey(new FGuid(), new FAesKey(Env("FT_AES")));
 provider.PostMount();
 
 if (args[1] == "--probe") { Probe.Libraries(provider, outRoot); return; }
+if (args[1] == "--dump") { Dump.Run(provider, outRoot, args.Skip(2).ToArray()); return; }
 
 // names: FHashedName = CityHash64 of the upper-case UTF-16 name (guess; doesn't match yet)
 ulong H(string s) => CityHash.CityHash64(Encoding.Unicode.GetBytes(s.ToUpperInvariant()));

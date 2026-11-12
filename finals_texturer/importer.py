@@ -172,7 +172,7 @@ GAME_TO_METRES = 0.01      # the game works in centimetres
 def import_scale():
     """Blender units per game unit for new imports (add-on preference)."""
     addon = bpy.context.preferences.addons.get(__package__)
-    size = getattr(addon.preferences, "import_size", "REAL") if addon else "REAL"
+    size = getattr(addon.preferences, "import_size", "GAME") if addon else "GAME"
     return 1.0 if size == "GAME" else GAME_TO_METRES
 
 
@@ -328,7 +328,7 @@ def write_log(log):
     txt.write("\n".join(log.lines) + "\n")
 
 
-def import_item(skin_path, root, log, whole_skin=True):
+def import_item(skin_path, root, log, whole_skin=True, lod_hint=""):
     """Import an item straight from its skin file (DA), e.g. a library search hit.
 
     The first exported mesh of the skin becomes the main object; with
@@ -343,7 +343,7 @@ def import_item(skin_path, root, log, whole_skin=True):
         return []
     main_file = ""
     for path, _kind, _socket in parts:
-        main_file = find_part_file(finder, path)
+        main_file = find_part_file(finder, path, lod_hint)
         if main_file:
             break
     if not main_file:

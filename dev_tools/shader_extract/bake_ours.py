@@ -4,6 +4,8 @@ UV0 / UV1 / UV2 per texel, coverage, and base colour / roughness / metallic.
 Weapon:   blender --factory-startup -b --python bake_ours.py -- <exports root> <weapon folder> <skin id suffix|DEFAULT> <out dir> [res]
 Clothing: blender --factory-startup -b --python bake_ours.py -- <exports root> --item <mesh .psk path, relative to the
           exports root> <skin name|AUTO|NONE> <out dir> [res]
+Face:     blender --factory-startup -b --python bake_ours.py -- <exports root> --face <DA_Head_* file name> <L|M|H> <out dir> [res]
+          (imports body + head like the Character tab, male, not muscular)
 Writes <out dir>/<object>__<slot>.npz per material slot with uv0, uv1, uv2 (UE convention: v = 0 at the top),
 mask, base, rough, metal, mi (the material instance name). All slots of an object are baked in one go (each
 material gets its own emission); the per-slot masks keep them apart.
@@ -18,7 +20,8 @@ import numpy as np
 args = sys.argv[sys.argv.index("--") + 1:]
 EXP = args[0]
 ITEM = args[1] == "--item"
-if ITEM:
+FACE = args[1] == "--face"
+if ITEM or FACE:
     MESH, SKEY, OUT = args[2:5]
     RES = int(args[5]) if len(args) > 5 else 256
 else:
@@ -29,14 +32,18 @@ sys.path.insert(0, ROOT)
 importlib.import_module("add-on-io-scene-psk-psa-v9_1_2").register()
 import finals_texturer  # noqa: E402
 finals_texturer.register()
-from finals_texturer import importer, weapons  # noqa: E402
+from finals_texturer import character, importer, weapons  # noqa: E402
 from finals_texturer.ue_assets import Log, find_skins  # noqa: E402
 
 os.makedirs(OUT, exist_ok=True)
 for o in list(bpy.data.objects):
     bpy.data.objects.remove(o)
 log = Log()
-if ITEM:
+if FACE:
+    character._ctx["root"] = lambda c: EXP
+    face = next(f for f in character.faces(EXP) if os.path.basename(f["path"])[:-5] == MESH)
+    objs = character.import_character(bpy.context, face, SKEY, "male", False, log)
+elif ITEM:
     mesh_path = os.path.join(EXP, MESH)
     skins = dict(find_skins(os.path.dirname(mesh_path)))
     choice = skins.get(SKEY, SKEY)
@@ -107,23 +114,30 @@ def uv_src(mat, names, k):
     return n.outputs["UV"]
 
 
-for obj in [o for o in objs if o.type == "MESH"]:
-    mats = [s.material for s in obj.material_slots if s.material is not None and s.material.node_tree]
-    mats = list(dict.fromkeys(mats))
-    if not mats:
-        continue
+def bake_slot(src_obj, mat, slot_indices, name, uv_names):
+    """Bake one material on a temporary copy of the object holding only that material's faces (parts of a
+    mesh often share UV space, e.g. a head's face, lashes and teeth)."""
+    import bmesh
+    obj = src_obj.copy()
+    obj.data = src_obj.data.copy()
+    bpy.context.scene.collection.objects.link(obj)
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index not in slot_indices], context="FACES")
+    bm.to_mesh(obj.data)
+    bm.free()
+    if not obj.data.polygons:
+        bpy.data.objects.remove(obj)
+        return
     for o in bpy.context.selected_objects:
         o.select_set(False)
     obj.hide_render = False
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
-    names = [l.name for l in obj.data.uv_layers]
-    if not names:
-        continue
     # bake target: UV0 with every face moved into the 0..1 tile (shoes, gloves use other tiles; Cycles only
     # bakes faces inside the image). The real UV0 is baked below for the game shader.
     me = obj.data
-    src_uv = me.uv_layers[names[0]].data
+    src_uv = me.uv_layers[uv_names[0]].data
     tgt = me.uv_layers.new(name="ft_bake_tile0")
     for poly in me.polygons:
         idx = list(poly.loop_indices)
@@ -135,22 +149,31 @@ for obj in [o for o in objs if o.type == "MESH"]:
     me.uv_layers.active = tgt
     uvs = []
     for k in (0, 1, 2):
-        srcs = {m: uv_src(m, names, k) for m in mats}
-        uvs.append(bake(obj, srcs, f"uv{k}"))
-        for m, s in srcs.items():
-            if isinstance(s, bpy.types.NodeSocket):
-                m.node_tree.nodes.remove(s.node)
-    base = bake(obj, {m: bsdf_src(m, "Base Color") for m in mats}, "base")
-    rough = bake(obj, {m: bsdf_src(m, "Roughness") for m in mats}, "rough")
-    metal = bake(obj, {m: bsdf_src(m, "Metallic") for m in mats}, "metal")
+        s = uv_src(mat, uv_names, k)
+        uvs.append(bake(obj, {mat: s}, f"uv{k}"))
+        if isinstance(s, bpy.types.NodeSocket):
+            mat.node_tree.nodes.remove(s.node)
+    base = bake(obj, {mat: bsdf_src(mat, "Base Color")}, "base")
+    rough = bake(obj, {mat: bsdf_src(mat, "Roughness")}, "rough")
+    metal = bake(obj, {mat: bsdf_src(mat, "Metallic")}, "metal")
+    cov = bake(obj, {mat: (1.0, 1.0, 1.0, 1.0)}, "mask")
     # the real UV0 (meshes may use other UV tiles, e.g. gloves: one hand per tile)
-    uv0 = np.stack([uvs[0][..., 0], 1.0 - uvs[0][..., 1]], -1)
+    np.savez_compressed(os.path.join(OUT, f"{name}.npz"),
+                        uv0=np.stack([uvs[0][..., 0], 1.0 - uvs[0][..., 1]], -1),
+                        uv1=np.stack([uvs[1][..., 0], 1.0 - uvs[1][..., 1]], -1),
+                        uv2=np.stack([uvs[2][..., 0], 1.0 - uvs[2][..., 1]], -1),
+                        mask=cov[..., 0] > 0.5, base=base[..., :3], rough=rough[..., 0], metal=metal[..., 0],
+                        mi=mat.get("ft_material", mat.name), kind=mat.get("ft_shader", ""))
+    bpy.data.objects.remove(obj)
+
+
+for obj in [o for o in objs if o.type == "MESH"]:
+    mats = [s.material for s in obj.material_slots if s.material is not None and s.material.node_tree]
+    mats = list(dict.fromkeys(mats))
+    names = [l.name for l in obj.data.uv_layers]
+    if not mats or not names:
+        continue
     for i, mat in enumerate(mats):
-        cov = bake(obj, {m: ((1.0, 1.0, 1.0, 1.0) if m is mat else (0.0, 0.0, 0.0, 1.0)) for m in mats}, "mask")
-        np.savez_compressed(os.path.join(OUT, f"{obj.name}__{i}.npz"),
-                            uv0=uv0,
-                            uv1=np.stack([uvs[1][..., 0], 1.0 - uvs[1][..., 1]], -1),
-                            uv2=np.stack([uvs[2][..., 0], 1.0 - uvs[2][..., 1]], -1),
-                            mask=cov[..., 0] > 0.5, base=base[..., :3], rough=rough[..., 0], metal=metal[..., 0],
-                            mi=mat.get("ft_material", mat.name), kind=mat.get("ft_shader", ""))
+        slots = {k for k, s in enumerate(obj.material_slots) if s.material is mat}
+        bake_slot(obj, mat, slots, f"{obj.name}__{i}", names)
         print("BAKED", obj.name, i, mat.get("ft_material", mat.name), mat.get("ft_shader", ""))
