@@ -24,7 +24,7 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from shadersim import Shader, Texture  # noqa: E402
+from shadersim import Shader, Texture, material_cbuffer  # noqa: E402
 
 ADDON = os.path.normpath(os.path.join(HERE, "..", "..", "finals_texturer"))
 sys.modules.setdefault("bpy", types.ModuleType("bpy"))
@@ -45,7 +45,9 @@ class Evaluator:
         self.root = exports_root
         self.dir = sm_dir
         self.layout = json.load(open(os.path.join(sm_dir, "material_layout.json"), encoding="utf-8"))
-        self.shader = Shader(open(os.path.join(sm_dir, "base_pass.asm"), encoding="utf-8", errors="replace").read())
+        asm = open(os.path.join(sm_dir, "base_pass.asm"), encoding="utf-8", errors="replace").read()
+        self.shader = Shader(asm)
+        self.mat_cb = material_cbuffer(asm)
         log = ue.Log()
         log.info = log.warn = lambda *a: None
         self.log = log
@@ -75,12 +77,24 @@ class Evaluator:
         buf = np.zeros(self.layout["UniformPreshaderBufferSize"] * 4, np.float32)
         for h in self.layout["UniformPreshaders"]:
             code = data[h["OpcodeOffset"]:h["OpcodeOffset"] + h["OpcodeSize"]]
-            res = run_preshader(code, params)
+            res = run_preshader(code, params, lambda idx: self._texture_size(mp, idx))
             for f in self.layout["UniformPreshaderFields"][h["FieldIndex"]:h["FieldIndex"] + h["NumFields"]]:
                 n = {"Float1": 1, "Float2": 2, "Float3": 3, "Float4": 4}.get(f["Type"], 1)
                 for k in range(n):
                     buf[f["BufferOffset"] + k] = res[k] if k < len(res) else 0.0
         return buf.reshape(-1, 4)
+
+    def _texture_size(self, mp, tex_index):
+        """Size of the texture behind a referenced-texture index (the MI's override when a parameter uses it)."""
+        refs = self._referenced(mp)
+        path = refs[tex_index] if 0 <= tex_index < len(refs) else ""
+        for group in self.layout["UniformTextureParameters"]:
+            for t in group:
+                name = (t.get("ParameterInfo") or {}).get("Name") or t.get("ParameterName")
+                if t["TextureIndex"] == tex_index and name and mp.textures.get(name):
+                    path = mp.textures[name]
+        tex = self._load(path)
+        return (float(tex.img.shape[-2]), float(tex.img.shape[-3])) if tex is not None else (1.0, 1.0)
 
     # ── textures ─────────────────────────────────────────────────────────────
     def _referenced(self, mp):
@@ -137,11 +151,11 @@ class Evaluator:
         return {i: self._load(p) for i, (_n, p) in enumerate(entries)}, [n for n, _ in entries]
 
     # ── run ──────────────────────────────────────────────────────────────────
-    def run(self, mi_json, uv0, uv1, normal=None):
+    def run(self, mi_json, uv0, uv1, uv2=None, normal=None):
         mp = ue.resolve_material(self.finder, json_path=mi_json, log=self.log)
         n = len(uv0)
         cb2 = self.uniform_buffer(mp)
-        cb0 = np.zeros((320, 4), np.float32)
+        cb0 = np.zeros((512, 4), np.float32)
         cb0[47] = (0, 0, 0, 1)
         cb0[160] = (0, 1, 0, 1)            # roughness / AO overrides: identity
         cb0[156] = (0, 0, 1, 0)
@@ -155,17 +169,28 @@ class Evaluator:
             # the vertex shader passes UV1 as (v, u); v3 = UV2 (u, v), -, gradient row (custom UV:
             # (Gradient Y Sample Index + 0.5) / height of the "Gradient" texture)
             "v2": [uv0[:, 0], uv0[:, 1], uv1[:, 1], uv1[:, 0]],
-            "v3": [uv1[:, 0], uv1[:, 1], np.zeros(n), np.full(n, row)],
+            "v3": [(uv2 if uv2 is not None else uv1)[:, 0], (uv2 if uv2 is not None else uv1)[:, 1], np.zeros(n),
+                   np.full(n, row)],
             "v4": [np.zeros(n)] * 3,
             "v5": [np.arange(n) % 1024 + 0.5, np.arange(n) // 1024 + 0.5, np.full(n, 0.5)],
         }
-        out = self.shader.run(n, inputs, {0: cb0, 1: np.zeros((45, 4)), 2: cb2}, tex)
+        cbs = {k: np.zeros((64, 4), np.float32) for k in range(1, self.mat_cb)}
+        cbs[0] = cb0
+        cbs[self.mat_cb] = cb2
+        out = self.shader.run(n, inputs, cbs, tex)
         o2, o3, o4 = out.get("o2"), out.get("o3"), out.get("o4")
+        if o3 is None:
+            raise RuntimeError("no G-buffer output (translucent / forward-shaded material): not comparable yet")
+        z = np.zeros(n, np.float32)
         return {"base_color": np.stack(o3[:3], 1), "metallic": o2[0], "specular": o2[1], "roughness": o2[2],
-                "clearcoat": o4[0], "clearcoat_roughness": o4[1], "textures": names, "params": mp}
+                "clearcoat": o4[0] if o4 else z, "clearcoat_roughness": o4[1] if o4 else z,
+                "outputs": out, "textures": names, "params": mp}
 
 
 UNARY = {
+    0x0d: math.sin, 0x0e: math.cos, 0x0f: math.tan,
+    0x10: lambda x: math.asin(min(max(x, -1.0), 1.0)), 0x11: lambda x: math.acos(min(max(x, -1.0), 1.0)),
+    0x12: math.atan,
     0x16: lambda x: math.sqrt(max(x, 0.0)),
     0x17: lambda x: 1.0 / x if x else float("inf"),          # Rcp
     0x1a: lambda x: min(max(x, 0.0), 1.0),                   # Saturate
@@ -178,7 +203,7 @@ UNARY = {
 }
 
 
-def run_preshader(code, params):
+def run_preshader(code, params, texture_size=None):
     """Numeric preshader (classic format, opcodes as decoded in annotate.py)."""
     stack, i = [], 0
     while i < len(code):
@@ -209,8 +234,26 @@ def run_preshader(code, params):
         elif op == 0x26:
             b, a = stack.pop(), stack.pop()
             stack.append(a + b)
+        elif op == 0x14:      # Dot
+            b, a = stack.pop(), stack.pop()
+            stack.append([sum(x * y for x, y in zip(a, b))])
+        elif op == 0x18:      # Length
+            v = stack.pop()
+            stack.append([math.sqrt(sum(x * x for x in v))])
+        elif op in (0x27, 0x28):  # TextureSize / TexelSize: parameter info (name u16, index i32, association u8),
+            tex_index = struct.unpack_from("<i", code, i + 7)[0]     # then the referenced-texture index (i32)
+            i += 11
+            w_, h_ = texture_size(tex_index) if texture_size else (1.0, 1.0)
+            stack.append([w_, h_, 1.0] if op == 0x27 else [1.0 / w_, 1.0 / h_, 1.0])
         elif op in UNARY:     # UE EPreshaderOpcode order: 0x16 Sqrt .. 0x21 Frac
             stack.append([UNARY[op](x) for x in stack.pop()])
+        elif op in (0x08, 0x09):      # Fmod, Modulo
+            b, a = stack.pop(), stack.pop()
+            m = max(len(a), len(b))
+            a = a * m if len(a) == 1 else a
+            b = b * m if len(b) == 1 else b
+            stack.append([math.fmod(x, y) if y else 0.0 for x, y in zip(a, b)] if op == 0x08
+                         else [x % y if y else 0.0 for x, y in zip(a, b)])
         elif op in (0x0a, 0x0b):
             b, a = stack.pop(), stack.pop()
             m = max(len(a), len(b))

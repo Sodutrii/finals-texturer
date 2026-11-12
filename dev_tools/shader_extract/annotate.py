@@ -22,7 +22,9 @@ import struct
 import sys
 from pathlib import Path
 
-UNARY_NAMES = {0x16: "sqrt", 0x17: "rcp", 0x1a: "sat", 0x1b: "abs", 0x1c: "floor", 0x1d: "ceil",
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+UNARY_NAMES = {0x0d: "sin", 0x0e: "cos", 0x0f: "tan", 0x16: "sqrt", 0x17: "rcp", 0x1a: "sat", 0x1b: "abs", 0x1c: "floor", 0x1d: "ceil",
                0x1e: "round", 0x1f: "trunc", 0x21: "frac"}
 VALUE_FLOATS = {1: 1, 2: 2, 3: 3, 4: 4}      # EValueType Float1..Float4
 
@@ -56,6 +58,13 @@ def decode_preshader(code, params):
             m = max(len(x), len(lo), len(hi))
             ext = lambda v: v * m if len(v) == 1 else v
             stack.append([f"clamp({a}, {b}, {c})" for a, b, c in zip(ext(x), ext(lo), ext(hi))])
+        elif op in (0x27, 0x28):
+            idx = struct.unpack_from("<i", code, i + 7)[0]; i += 11
+            fn = "TextureSize" if op == 0x27 else "TexelSize"
+            stack.append([f"{fn}(tex{idx}).{c}" for c in "xyz"])
+        elif op == 0x18:
+            v = stack.pop()
+            stack.append([f"length({', '.join(v)})"])
         elif op == 0x25:
             n = code[i]; comps = code[i + 1:i + 5]; i += 5
             v = stack.pop()
@@ -99,21 +108,27 @@ def texture_names(layout, master_json, skip):
 
 def main():
     out_dir, asm_path, master_json = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
-    cb = sys.argv[4] if len(sys.argv) > 4 and not sys.argv[4].startswith("--") else "cb2"
+    cb = sys.argv[4] if len(sys.argv) > 4 and not sys.argv[4].startswith("--") else None
     skip = {int(x) for a in sys.argv if a.startswith("--skip-textures=") for x in a.split("=")[1].split(",") if x}
     layout = json.load(open(out_dir / "material_layout.json", encoding="utf-8"))
     comps = buffer_map(layout)
     texs = texture_names(layout, master_json, skip)
     asm = asm_path.read_text(encoding="utf-8", errors="replace")
+    if cb is None:
+        from shadersim import material_cbuffer
+        cb = f"cb{material_cbuffer(asm)}"
 
     def sub_cb(m):
         reg, sw = int(m.group(1)), m.group(2)
         names = [comps.get(reg * 4 + "xyzw".index(c), f"{cb}[{reg}].{c}") for c in sw]
         return f"{m.group(0)}{{{', '.join(names)}}}"
     asm = re.sub(rf"-?\|?{cb}\[(\d+)\]\.([xyzw]+)\|?", sub_cb, asm)
-    regs = [int(r) for r in re.findall(r"dcl_resource_texture\w*\s*\([^)]*\)\s*t(\d+)", asm)]
-    off = min(regs) if regs else 0           # structured buffers (GPU-scene data) come first
-    name = lambda i: texs[i - off] if 0 <= i - off < len(texs) else "?"
+    from shadersim import material_texture_registers
+    regs = material_texture_registers(asm)
+    order = {r: k for k, r in enumerate(regs)}   # k-th declared texture = k-th used texture (structured buffers skipped)
+    if len(regs) != len(texs):
+        print(f"warning: {len(regs)} texture registers, {len(texs)} texture parameters (adjust --skip-textures)")
+    name = lambda i: texs[order[i]] if i in order and order[i] < len(texs) else "?"
     asm = re.sub(r"\bt(\d+)\.", lambda m: f"t{m.group(1)}<{name(int(m.group(1)))}>.", asm)
     head = ["// material uniform buffer (" + cb + "):"]
     for reg in range(max(comps) // 4 + 1):

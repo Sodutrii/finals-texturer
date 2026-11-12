@@ -71,8 +71,19 @@ foreach (var matPath in args.Skip(1))
 void Extract(string matPath)
 {
     var mat = provider.LoadPackageObject<UMaterialInterface>(matPath);
-    var res = (mat.LoadedMaterialResources ?? new()).Where(r => r.LoadedShaderMap?.ShaderPlatform == EShaderPlatform.SP_PCD3D_SM5).ToList();
-    if (res.Count == 0) { Console.WriteLine($"{mat.Name}: no SM5 shader map of its own (uses its parent's)"); return; }
+    // material instances without static-switch changes have no shader map of their own: use the nearest
+    // parent's (the output folder keeps the instance's name; its parameter values come from its own JSON)
+    var src = mat;
+    List<FMaterialResource> res;
+    while (true)
+    {
+        res = (src.LoadedMaterialResources ?? new()).Where(r => r.LoadedShaderMap?.ShaderPlatform == EShaderPlatform.SP_PCD3D_SM5).ToList();
+        if (res.Count > 0) break;
+        var parent = (src as UMaterialInstance)?.Parent?.Load<UMaterialInterface>();
+        if (parent == null) { Console.WriteLine($"{mat.Name}: no SM5 shader map in its chain"); return; }
+        src = parent;
+    }
+    if (src != mat) Console.WriteLine($"{mat.Name}: using the shader map of {src.Name}");
     var sm = (res.FirstOrDefault(r => r.LoadedShaderMap!.ShaderMapId?.QualityLevel.ToString() == "Num") ?? res.First()).LoadedShaderMap!;
     var content = (FMaterialShaderMapContent)sm.Content!;
     var outDir = Path.Combine(outRoot, mat.Name);
@@ -133,11 +144,11 @@ void Extract(string matPath)
         pr.WaitForExit();
         if (pr.ExitCode != 0) { report.AppendLine("   fxc failed: " + pr.StandardError.ReadToEnd().Trim()); return; }
         if (freq == "SF_Vertex") return;
-        // base pass = the pixel shader that writes the G-buffer (o3 base colour, o4 clear coat), preferring
+        // base pass = the pixel shader that writes the G-buffer (o3 = base colour), preferring
         // vertex factories without per-object structured buffers (GPU-scene variants shift every texture
         // register; graphic skins only have those), then the largest
         var asm = File.ReadAllText(stem + ".asm");
-        var gbuffer = asm.Contains("dcl_output o3") && asm.Contains("dcl_output o4");
+        var gbuffer = asm.Contains("dcl_output o3");
         var structured = System.Text.RegularExpressions.Regex.Matches(asm, "dcl_resource_structured").Count;
         var score = (gbuffer ? 1L << 40 : 0) - ((long)structured << 32) + size;
         if (score > biggestScore) { biggestScore = score; biggestSize = size; biggest = stem + ".asm"; }

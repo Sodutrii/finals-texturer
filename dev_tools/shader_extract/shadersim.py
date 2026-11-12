@@ -25,6 +25,22 @@ def as_f(x):
     return np.ascontiguousarray(x, dtype=U32).view(F32)
 
 
+def material_texture_registers(asm):
+    """Texture registers holding the material's textures, in order: the declared texture registers after
+    the last structured buffer (GPU-scene vertex factories declare per-object buffers, and some passes a
+    view texture before them)."""
+    regs = sorted(int(m) for m in re.findall(r"dcl_resource_texture\w*\s*\([^)]*\)\s*t(\d+)", asm))
+    st = [int(m) for m in re.findall(r"dcl_resource_structured\s+t(\d+)", asm)]
+    return [r for r in regs if not st or r > max(st)]
+
+
+def material_cbuffer(asm):
+    """Index of the material's uniform buffer: the last declared constant buffer (cb0 = view, then
+    primitive / scene buffers; cb2 on the weapon base pass, cb3 on clothing)."""
+    idx = [int(m) for m in re.findall(r"dcl_constantbuffer\s+[Cc][Bb](\d+)\[", asm)]
+    return max(idx) if idx else 2
+
+
 class Texture:
     """RGBA float image, row 0 = top (UE texture space: v = 0 at the top)."""
 
@@ -75,12 +91,16 @@ class Shader:
                 s = re.sub(r"\s*\[precise[^\]]*\]", "", s)
                 body.append(s)
         self.lines = body
-        # texture registers start after structured buffers (GPU-scene vertex factories put one at t0)
-        regs = [int(m) for m in re.findall(r"dcl_resource_texture\w*\s*\([^)]*\)\s*t(\d+)", asm)]
-        self.tex_offset = min(regs) if regs else 0
+        # the k-th declared texture register = the k-th used material texture (structured buffers of
+        # GPU-scene vertex factories sit in between, e.g. t0 or t1 / t2)
+        regs = material_texture_registers(asm)
+        self.tex_index = {r: k for k, r in enumerate(regs)}
 
     # ── operands ─────────────────────────────────────────────────────────────
-    def _src(self, tok, n):
+    INT_OPS = {"iadd", "imad", "imul", "umul", "umad", "ineg", "ishl", "ishr", "ushr", "imin", "imax", "ige",
+               "ilt", "ieq", "ine", "uge", "ult", "umin", "umax", "and", "or", "xor", "not", "itof", "utof", "udiv"}
+
+    def _src(self, tok, n, integer=False):
         m = OPERAND.fullmatch(tok.strip())
         if not m:
             raise ValueError(f"operand {tok!r}")
@@ -103,6 +123,12 @@ class Shader:
         out = [src[SWZ[c]] for c in swz]
         while len(out) < 4:
             out.append(out[-1])
+        if integer:                              # source modifiers act on integers for integer instructions
+            if absv:
+                out = [as_f(np.abs(as_u(c).view(np.int32)).view(U32)) for c in out]
+            if neg:
+                out = [as_f((-as_u(c).view(np.int32).astype(np.int64) & 0xFFFFFFFF).astype(U32)) for c in out]
+            return out
         if absv:
             out = [np.abs(c) for c in out]
         if neg:
@@ -194,12 +220,72 @@ class Shader:
     def _exec(self, op, a, sat, n):
         if op.startswith("sample"):
             return self._sample(a, sat, n)
+        if op.startswith("resinfo"):
+            # resinfo dst, mip, tN: width, height, depth / layers, mip count (as floats; _uint variants as ints)
+            full = op + " " + ", ".join(a)
+            m = re.search(r"\)\s*([a-z]+\d+(?:\.[xyzw]+)?)\s*,\s*[^,]+,\s*t(\d+)", full)
+            d, ti = self._dst(m.group(1)), int(m.group(2))
+            tex = self.tex.get(self.tex_index.get(ti, -1))
+            if tex is not None:
+                h, w = tex.img.shape[-3], tex.img.shape[-2]
+                layers = tex.img.shape[0] if tex.is_array else 1
+            else:
+                h = w = 1; layers = 1
+            vals = [float(w), float(h), float(layers), 1.0]
+            if "_uint" in full:
+                return self._write(d, [as_f(np.full(n, int(v), U32)) for v in vals])
+            return self._write(d, [np.full(n, v, F32) for v in vals])
+        if op.startswith("ld_indexable") or op.startswith("ld("):
+            # texel fetch: integer coordinates
+            full = op + " " + ", ".join(a)
+            m = re.search(r"\)\s*([a-z]+\d+(?:\.[xyzw]+)?)\s*,\s*([^,]+),\s*t(\d+)\.([xyzw]+)", full)
+            d, coord, ti, swz = self._dst(m.group(1)), self._src(m.group(2), n), int(m.group(3)), m.group(4)
+            tex = self.tex.get(self.tex_index.get(ti, -1))
+            if tex is None:
+                res = np.full((n, 4), 0.5, F32)
+            else:
+                h, w = tex.img.shape[-3], tex.img.shape[-2]
+                x = as_u(coord[0]).view(np.int32) % w
+                y = as_u(coord[1]).view(np.int32) % h
+                res = tex.img[np.clip(as_u(coord[2]).view(np.int32), 0, tex.img.shape[0] - 1), y, x]                     if tex.is_array else tex.img[y, x]
+            return self._write(d, [res[:, SWZ[c]] for c in swz])
         if op.startswith("ld_structured"):
             # per-object GPU-scene data: not modelled, reads as zeros
-            d = self._dst(re.search(r"\)\s*([a-z]+\d+(?:\.[xyzw]+)?)\s*,", " ".join([op] + a)).group(1))
+            d = self._dst(re.search(r"\)\s*([a-z]+\d+(?:\.[xyzw]+)?)\s*,", op + " " + ", ".join(a)).group(1))
             return self._write(d, [np.zeros(n, F32)] * 4)
+        if op == "sincos":                      # sincos dst_sin, dst_cos, src (either may be null)
+            src = self._src(a[2], n)
+            for dtok, f in ((a[0], np.sin), (a[1], np.cos)):
+                if dtok.strip() != "null":
+                    self._write(self._dst(dtok), [f(c) for c in src], sat)
+            return
+        if op in ("imul", "umul", "udiv"):      # two destinations (high / low, quotient / remainder)
+            if op == "udiv":
+                d1 = None if a[0].strip() == "null" else self._dst(a[0])
+                d2 = None if a[1].strip() == "null" else self._dst(a[1])
+                s = [self._src(x, n, True) for x in a[2:]]
+                q = [as_f((as_u(x) // np.maximum(as_u(y), 1)).astype(U32)) for x, y in zip(s[0], s[1])]
+                r = [as_f((as_u(x) % np.maximum(as_u(y), 1)).astype(U32)) for x, y in zip(s[0], s[1])]
+                if d1:
+                    self._write(d1, q)
+                if d2:
+                    self._write(d2, r)
+                return
+            hi_null = a[0].strip() == "null"
+            if hi_null:
+                a = a[1:]
+            if not hi_null:
+                a = a[1:]                       # high half not modelled
+            d = self._dst(a[0])
+            s = [self._src(x, n, True) for x in a[1:]]
+            sgn = np.int32 if op == "imul" else U32
+            r = [as_f((as_u(x).view(sgn).astype(np.int64) * as_u(y).view(sgn).astype(np.int64)).astype(np.int64)
+                      .astype(np.uint64).astype(U32)) for x, y in zip(s[0], s[1])]
+            return self._write(d, r)
         d = self._dst(a[0])
-        s = [self._src(x, n) for x in a[1:]]
+        s = [self._src(x, n, op in self.INT_OPS) for x in a[1:]]
+        i32 = lambda x: as_u(x).view(np.int32).astype(np.int64)
+        fi = lambda v: as_f((np.asarray(v, np.int64) & 0xFFFFFFFF).astype(U32))
         ew = lambda f: [f(*[x[k] for x in s]) for k in range(4)]
         t = np.full(n, 0xFFFFFFFF, U32).view(F32)
         z = np.zeros(n, F32)
@@ -256,6 +342,38 @@ class Shader:
             r = ew(lambda x, y: as_f(as_u(x) & as_u(y)))
         elif op == "or":
             r = ew(lambda x, y: as_f(as_u(x) | as_u(y)))
+        elif op == "iadd":
+            r = ew(lambda x, y: fi(i32(x) + i32(y)))
+        elif op == "imad":
+            r = ew(lambda x, y, w: fi(i32(x) * i32(y) + i32(w)))
+        elif op == "umad":
+            r = ew(lambda x, y, w: fi(as_u(x).astype(np.int64) * as_u(y) + as_u(w)))
+        elif op == "ineg":
+            r = ew(lambda x: fi(-i32(x)))
+        elif op == "ishl":
+            r = ew(lambda x, y: fi(as_u(x).astype(np.int64) << (as_u(y) & 31)))
+        elif op == "ishr":
+            r = ew(lambda x, y: fi(i32(x) >> (as_u(y) & 31)))
+        elif op == "ushr":
+            r = ew(lambda x, y: as_f(as_u(x) >> (as_u(y) & 31)))
+        elif op == "xor":
+            r = ew(lambda x, y: as_f(as_u(x) ^ as_u(y)))
+        elif op == "not":
+            r = ew(lambda x: as_f(~as_u(x)))
+        elif op in ("ige", "ilt", "ieq", "ine", "uge", "ult"):
+            f = {"ige": lambda x, y: i32(x) >= i32(y), "ilt": lambda x, y: i32(x) < i32(y),
+                 "ieq": lambda x, y: as_u(x) == as_u(y), "ine": lambda x, y: as_u(x) != as_u(y),
+                 "uge": lambda x, y: as_u(x) >= as_u(y), "ult": lambda x, y: as_u(x) < as_u(y)}[op]
+            r = cmp(f)
+        elif op in ("imin", "imax"):
+            r = ew(lambda x, y: fi((np.minimum if op == "imin" else np.maximum)(i32(x), i32(y))))
+        elif op == "umax":
+            r = ew(lambda x, y: as_f(np.maximum(as_u(x), as_u(y))))
+        elif op == "ftou":
+            r = ew(lambda x: as_f(np.clip(np.nan_to_num(x), 0, 4294967295).astype(np.uint64).astype(U32)))
+        elif op in ("deriv_rtx", "deriv_rty", "deriv_rtx_coarse", "deriv_rty_coarse", "deriv_rtx_fine",
+                    "deriv_rty_fine"):
+            r = [np.zeros(n, F32)] * 4          # no neighbouring pixels
         elif op == "umin":
             r = ew(lambda x, y: as_f(np.minimum(as_u(x), as_u(y))))
         elif op == "utof":
@@ -274,7 +392,7 @@ class Shader:
         coord = self._src(a[1], n)
         tm = re.fullmatch(r"t(\d+)\.([xyzw]+)", a[2].strip())
         ti, swz = int(tm.group(1)), tm.group(2)
-        tex = self.tex.get(ti - self.tex_offset)
+        tex = self.tex.get(self.tex_index.get(ti, -1))
         if tex is None:
             res = np.full((n, 4), 0.5, F32)
         else:

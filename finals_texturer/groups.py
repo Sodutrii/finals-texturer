@@ -8,7 +8,7 @@ import bpy
 
 from .nodes import NodeBuilder, new_group, add_socket
 
-VERSION = 9
+VERSION = 13
 _TAG = "ft_group_version"
 
 
@@ -36,37 +36,28 @@ def _io(ng):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def color_mask():
-    """ColorMask R/G/B pick ColorA/B/C (scheme 1) or ColorA2/B2/C2 (scheme 2).
-
-    The swatch switches mask channels on/off; where no enabled channel covers
-    a pixel the Fallback colour (white) is used, so the layer's overlay tint
-    shows as-is. E.g. CombatPants MajorsEventPass layer 3: swatch black,
-    overlay #B51B34 → red.
-    """
+    """Colour mask → colour, as the game's compiled shader does it: starting
+    from Start (white), lerp toward ColorA by the mask's R, then toward ColorB
+    by G, then ColorC by B (a later channel wins where several are set), each
+    weight x Strength. Each colour is lerped to its scheme-2 version (A2/B2/C2)
+    by the scheme mask (BaseColor texture R). The Color Mask input is the
+    ColorMask texture x the layer's ColorMaskSwatch (channels it disables stay
+    at Start)."""
     def build(ng):
         add_socket(ng, "Color", "COLOR", "OUTPUT")
         add_socket(ng, "Color Mask", "COLOR", default=(1, 0, 0))
         add_socket(ng, "Scheme Mask", "FLOAT", default=0.0, lo=0, hi=1)
-        add_socket(ng, "Swatch", "COLOR", default=(1, 1, 1))
+        add_socket(ng, "Strength", "FLOAT", default=1.0, lo=0, hi=1)
         for n in ("ColorA", "ColorB", "ColorC", "ColorA2", "ColorB2", "ColorC2"):
             add_socket(ng, n, "COLOR", default=(1, 1, 1))
-        add_socket(ng, "Fallback", "COLOR", default=(1, 1, 1))
+        add_socket(ng, "Start", "COLOR", default=(1, 1, 1))
         nb, i, o = _io(ng)
-        r, g, b = nb.separate(nb.mix(i["Color Mask"], i["Swatch"], 1.0, "MULTIPLY"))
-        total = nb.add(nb.add(r, g), b)
-        norm = nb.math("MAXIMUM", total, 1.0)
-
-        def scheme(a, bb, c):
-            acc = nb.vmath("SCALE", i[a], scale=nb.math("DIVIDE", r, norm))
-            acc = nb.vmath("ADD", acc, nb.vmath("SCALE", i[bb], scale=nb.math("DIVIDE", g, norm)))
-            acc = nb.vmath("ADD", acc, nb.vmath("SCALE", i[c], scale=nb.math("DIVIDE", b, norm)))
-            return acc
-        s1 = scheme("ColorA", "ColorB", "ColorC")
-        s2 = scheme("ColorA2", "ColorB2", "ColorC2")
-        picked = nb.mix(s1, s2, i["Scheme Mask"])
-        uncovered = nb.sub(1.0, total, clamp=True)
-        rest = nb.vmath("SCALE", i["Fallback"], scale=uncovered)
-        nb.feed(o["Color"], nb.vmath("ADD", picked, rest))
+        chans = nb.separate(i["Color Mask"])
+        col = i["Start"]
+        for ch, x in zip(chans, ("ColorA", "ColorB", "ColorC")):
+            target = nb.mix(i[x], i[x + "2"], i["Scheme Mask"])
+            col = nb.mix(col, target, nb.mul(ch, i["Strength"]))
+        nb.feed(o["Color"], col)
     return _get("FT Color Mask", build)
 
 
@@ -117,133 +108,152 @@ def normal_from_rg():
 REGIONS = ("Base", "Edge", "Crease")
 
 
+def region_masks():
+    """Edge and crease masks of a layer, as the game's compiled shaders do it
+    (M_Character_8Layers_Master / M_Character_Layered, 2026-11-12):
+      edge   x = 1 - sat(OCM.R x (2 curvature - 1)),  x' = x (x + 1 - EdgeMask)
+      crease x = sat(2 curvature),                    x' = x (x + CreaseMask)
+      mask = sat(((1 + s) x Amount - x') / s),  s = MaskSoftness (0 = hard step)
+    EdgeMask / CreaseMask = the layer's TextureArray_M slices. New gen: x is
+    multiplied by the BreakupMask texture. Old gen: x' gets a wear term from the
+    BaseColor texture, clamp((channel - 0.5) x 2 x k, -1, 1) with blue and
+    k = 1 + breakup for edges, green and k = 2 - breakup for creases.
+    (EdgeMaskThickness only bevels normals; it doesn't change these masks.)"""
+    def build(ng):
+        add_socket(ng, "Edge", "FLOAT", "OUTPUT")
+        add_socket(ng, "Crease", "FLOAT", "OUTPUT")
+        add_socket(ng, "Curvature", "FLOAT", default=0.5, lo=0, hi=1)
+        add_socket(ng, "Edge Scale", "FLOAT", default=1.0, lo=0, hi=1)          # OCM red
+        add_socket(ng, "Breakup Mask", "FLOAT", default=1.0, lo=0, hi=1)
+        add_socket(ng, "Old Gen", "FLOAT", default=0.0, lo=0, hi=1)
+        add_socket(ng, "Edge Wear", "FLOAT", default=0.5, lo=0, hi=1)           # BaseColor B (old gen)
+        add_socket(ng, "Crease Wear", "FLOAT", default=0.5, lo=0, hi=1)         # BaseColor G (old gen)
+        for r in ("Edge", "Crease"):
+            add_socket(ng, f"{r} Amount", "FLOAT", default=0.0, lo=0, hi=1)
+            add_socket(ng, f"{r} Softness", "FLOAT", default=0.5, lo=0, hi=10)
+            add_socket(ng, f"{r} Mask", "FLOAT", default=0.5, lo=0, hi=1)
+        nb, i, o = _io(ng)
+        old = i["Old Gen"]
+        brk = nb.clamp01(i["Breakup Mask"])
+        new_brk = nb.lerp(brk, 1.0, old)                      # new gen multiplies x by the breakup mask
+
+        def finish(xp, r):
+            s = nb.math("MAXIMUM", i[f"{r} Softness"], 0.0001)
+            k = nb.mul(nb.add(s, 1.0), i[f"{r} Amount"])
+            return nb.math("DIVIDE", nb.sub(k, xp), s, clamp=True)
+
+        def wear(chan, kfac):
+            w = nb.mul(nb.mul(nb.sub(chan, 0.5), 2.0), kfac)
+            w = nb.math("MINIMUM", nb.math("MAXIMUM", w, -1.0), 1.0)
+            return nb.mul(w, old)
+
+        c = i["Curvature"]
+        ex = nb.sub(1.0, nb.mul(i["Edge Scale"], nb.sub(nb.mul(c, 2.0), 1.0), clamp=True))
+        ex = nb.mul(ex, new_brk)
+        exp_ = nb.mul(ex, nb.sub(nb.add(ex, 1.0), i["Edge Mask"]))
+        exp_ = nb.add(exp_, wear(i["Edge Wear"], nb.add(1.0, brk)))
+        cx = nb.mul(nb.mul(c, 2.0, clamp=True), new_brk)
+        cxp = nb.mul(cx, nb.add(cx, i["Crease Mask"]))
+        cxp = nb.add(cxp, wear(i["Crease Wear"], nb.sub(2.0, brk)))
+        nb.feed(o["Edge"], finish(exp_, "Edge"))
+        nb.feed(o["Crease"], finish(cxp, "Crease"))
+    return _get("FT Region Masks", build)
+
+
 def surface_layer():
+    """One layer of the layered clothing masters, after the game's compiled
+    shader (M_Character_Layered / M_Character_8Layers_Master, 2026-11-12):
+    colour = Mask Color (from FT Color Mask) x BaseColorOverlay.rgb (its alpha
+    is not used) x the colour texture blended in by Base / Edge / Crease
+    texture strength; old-gen pattern (PatternMask / PatternColorA-C); edge and
+    crease overlays painted by mask x overlay alpha (old gen: crease first);
+    hue variation = lerp toward the hue-noise colour by strength x 0.1.
+    Roughness (mask + offset), metallic, specular and detail normals blend
+    base → edge → crease (old gen: base → crease → edge)."""
     def build(ng):
         for name, kind in (("Color", "COLOR"), ("Roughness", "FLOAT"), ("Metallic", "FLOAT"),
-                           ("Specular", "FLOAT"), ("Detail Normal", "COLOR"),
-                           ("Edge Mask", "FLOAT"), ("Crease Mask", "FLOAT"), ("Sheen", "FLOAT")):
+                           ("Specular", "FLOAT"), ("Detail Normal", "COLOR"), ("Shade As Cloth", "FLOAT")):
             add_socket(ng, name, kind, "OUTPUT")
         add_socket(ng, "Mask Color", "COLOR", default=(1, 1, 1))
-        add_socket(ng, "Curvature", "FLOAT", default=0.5, lo=0, hi=1)
+        add_socket(ng, "Edge Mask", "FLOAT", default=0.0, lo=0, hi=1)
+        add_socket(ng, "Crease Mask", "FLOAT", default=0.0, lo=0, hi=1)
         for r in REGIONS:
-            add_socket(ng, f"{r} Color Mask Strength", "FLOAT", default=1.0, lo=0, hi=1)
             add_socket(ng, f"{r} Overlay", "COLOR", default=(1, 1, 1))
-            add_socket(ng, f"{r} Overlay Alpha", "FLOAT", default=0.0, lo=0, hi=1)
+            if r != "Base":
+                add_socket(ng, f"{r} Overlay Alpha", "FLOAT", default=0.0, lo=0, hi=1)
             add_socket(ng, f"{r} Texture Strength", "FLOAT", default=0.0, lo=0, hi=1)
             add_socket(ng, f"{r} Roughness", "FLOAT", default=0.0, lo=-1, hi=1)   # offset, can be negative
             add_socket(ng, f"{r} Roughness Mask", "FLOAT", default=0.5, lo=0, hi=1)
             add_socket(ng, f"{r} Metallic", "FLOAT", default=0.0, lo=0, hi=1)
             add_socket(ng, f"{r} Specular", "FLOAT", default=0.5, lo=0, hi=1)
             add_socket(ng, f"{r} Detail Normal", "COLOR", default=(0.5, 0.5, 1.0))
-        for r in ("Edge", "Crease"):
-            add_socket(ng, f"{r} Amount", "FLOAT", default=0.0, lo=0, hi=1)
-            add_socket(ng, f"{r} Softness", "FLOAT", default=0.5, lo=0, hi=4)
-            add_socket(ng, f"{r} Breakup", "FLOAT", default=0.5, lo=0, hi=1)
-        add_socket(ng, "Edge Thickness", "FLOAT", default=0.3, lo=0.0, hi=0.49)
         add_socket(ng, "Color Texture", "COLOR", default=(1, 1, 1))
-        add_socket(ng, "Hue Noise", "COLOR", default=(0.5, 0.33, 0.3))
-        add_socket(ng, "Hue Variation", "FLOAT", default=0.0, lo=0, hi=1)
         add_socket(ng, "Pattern", "COLOR", default=(0, 0, 0))
-        add_socket(ng, "Pattern Swatch", "COLOR", default=(1, 1, 1))
-        add_socket(ng, "Pattern Swatch Mask", "COLOR", default=(1, 1, 1))
-        add_socket(ng, "Pattern Strength", "FLOAT", default=0.0, lo=0, hi=1)
+        add_socket(ng, "Pattern Mask Alpha", "FLOAT", default=0.0, lo=0, hi=1)
+        for x in "ABC":
+            add_socket(ng, f"Pattern Color {x}", "COLOR", default=(1, 1, 1))
+            add_socket(ng, f"Pattern Color {x} Alpha", "FLOAT", default=0.0, lo=0, hi=1)
+        add_socket(ng, "Pattern Weight", "FLOAT", default=0.0, lo=0, hi=1)
+        add_socket(ng, "Crease First", "FLOAT", default=0.0, lo=0, hi=1)
+        add_socket(ng, "Hue Noise", "COLOR", default=(0.5, 0.33, 0.3))
+        add_socket(ng, "Hue Variation", "FLOAT", default=0.0, lo=-10, hi=10)
         add_socket(ng, "Medium Normal", "COLOR", default=(0.5, 0.5, 1.0))
         add_socket(ng, "Medium Normal Strength", "FLOAT", default=0.0, lo=0, hi=2)
         add_socket(ng, "Shade As Cloth", "FLOAT", default=0.0, lo=0, hi=1)
 
         nb, i, o = _io(ng)
-        curv = i["Curvature"]
+        edge, crease = i["Edge Mask"], i["Crease Mask"]
+        base_w = nb.clamp01(nb.mul(nb.sub(nb.sub(1.0, edge), crease), 2.0))
 
-        # Edge / crease masks: curvature distance from 0.5, broken up by a
-        # tiling mask (0.5 = neutral), then thresholded by Amount.
-        def region_mask(raw, r):
-            broken = nb.clamp01(nb.mul(raw, nb.mul(i[f"{r} Breakup"], 2.0)))
-            lo = nb.sub(1.0, i[f"{r} Amount"])
-            soft = nb.math("MAXIMUM", nb.mul(i[f"{r} Softness"], 0.5), 0.01)
-            m = nb.map_range(broken, lo, nb.add(lo, soft), mode="SMOOTHSTEP")
-            on = nb.math("GREATER_THAN", i[f"{r} Amount"], 0.0)
-            return nb.mul(m, on)
+        # colour texture: lerp(1, tex) by base / edge / crease texture strength
+        tex = i["Color Texture"]
+        t = nb.mix((1, 1, 1, 1), tex, nb.mul(i["Base Texture Strength"], base_w, clamp=True))
+        t = nb.mix(t, tex, nb.mul(i["Edge Texture Strength"], edge, clamp=True))
+        t = nb.mix(t, tex, nb.mul(i["Crease Texture Strength"], crease, clamp=True))
+        color = nb.mix(nb.mix(i["Mask Color"], i["Base Overlay"], 1.0, "MULTIPLY"), t, 1.0, "MULTIPLY",
+                       label="Mask colour x overlay x texture")
 
-        # Thickness widens the edge band: 0 follows the curvature map as-is
-        # (0.5 → 1.0), larger values saturate sooner (0.3 → full at 0.7).
-        # A thickness of 0 is common (BikerVest Leather, CombatPants Nylon) and
-        # must not turn every convex area into a hard edge.
-        edge_raw = nb.map_range(curv, 0.5, nb.sub(1.0, i["Edge Thickness"]))
-        crease_raw = nb.map_range(curv, 0.5, 0.0)
-        edge = region_mask(edge_raw, "Edge")
-        crease = region_mask(crease_raw, "Crease")
+        # old-gen pattern: pattern RGB by PatternMask alpha, then PatternColorA/B/C by the
+        # pattern's R/G/B x their alphas; painted by Pattern Weight (from the colour mask)
+        pr, pg, pb = nb.separate(i["Pattern"])
+        pc = nb.mix(color, i["Pattern"], i["Pattern Mask Alpha"])
+        for ch, x in zip((pr, pg, pb), "ABC"):
+            pc = nb.mix(pc, i[f"Pattern Color {x}"], nb.mul(ch, i[f"Pattern Color {x} Alpha"]))
+        color = nb.mix(color, pc, i["Pattern Weight"], label="Pattern (old gen)")
 
-        def region_color(r):
-            if r == "Base":
-                # Base = mix(overlay, mask colour × tint, ColorMaskStrength), where
-                # tint = white → overlay by the overlay's alpha. Checked against
-                # store images: CombatPants SSG pockets (strength 0, #4F4F4F) dark;
-                # SSG body (1, a 0) mask yellow; Nylon fabric (1, #3F3E41, a 1)
-                # black; Envy pockets (0.38, #495571) muted blue (66,75,102);
-                # BikerVest (1, #96989A, a 1 over #6C6E70) dark grey (~60).
-                tint = nb.mix((1, 1, 1, 1), i["Base Overlay"], i["Base Overlay Alpha"])
-                masked = nb.mix(i["Mask Color"], tint, 1.0, "MULTIPLY")
-                tinted = nb.mix(i["Base Overlay"], masked, i["Base Color Mask Strength"])
-            else:
-                # Edge / crease: the overlay colour is painted over the base by
-                # its alpha (below); e.g. grey worn edges, darkened creases.
-                tinted = i[f"{r} Overlay"]
-            return nb.mix(tinted, i["Color Texture"], i[f"{r} Texture Strength"], "MULTIPLY")
+        # edge / crease overlays (new gen: edge then crease; old gen: crease then edge)
+        def paint(c, r, m):
+            return nb.mix(c, i[f"{r} Overlay"], nb.mul(m, i[f"{r} Overlay Alpha"]), label=f"{r} overlay")
+        ec = paint(paint(color, "Edge", edge), "Crease", crease)
+        ce = paint(paint(color, "Crease", crease), "Edge", edge)
+        color = nb.mix(ec, ce, i["Crease First"])
 
-        def region_rough(r):
-            # Roughness is an offset on the mask (flat masks are 0.5; skins use
-            # negative values, e.g. -0.48 for polished leather edges).
-            return nb.add(i[f"{r} Roughness Mask"], i[f"{r} Roughness"], clamp=True)
+        # hue variation: lerp toward the noise colour by strength x 0.1
+        color = nb.mix(color, i["Hue Noise"], nb.mul(i["Hue Variation"], 0.1), label="Hue variation")
 
-        def by_region(f):
-            base = f("Base")
-            return base, f("Edge"), f("Crease")
-
-        def blend(vals, color=False):
-            b, e, c = vals
-            if color:
-                return nb.mix(nb.mix(b, e, edge), c, crease)
-            return nb.lerp(nb.lerp(b, e, edge), c, crease)
-
-        # Edge / crease colour is painted over the base by the overlay's alpha
-        # (alpha 0 = the region keeps the base colour; only its surface changes).
-        b_col, e_col, c_col = by_region(region_color)
-        color = nb.mix(nb.mix(b_col, e_col, nb.mul(edge, i["Edge Overlay Alpha"])),
-                       c_col, nb.mul(crease, i["Crease Overlay Alpha"]))
-
-        # Hue variation: low-frequency noise gently varies brightness. In game
-        # the effect is barely visible (e.g. the red beret at 0.1 shows no
-        # orange), so the hue itself is left alone; shifting it turned
-        # saturated reds into orange/magenta patches.
-        luma = nb.node("ShaderNodeRGBToBW")
-        nb.feed(luma.inputs[0], i["Hue Noise"])
-        hsv = nb.node("ShaderNodeHueSaturation")
-        nb.feed(hsv.inputs["Hue"], 0.5)
-        nb.feed(hsv.inputs["Saturation"], 1.0)
-        nb.feed(hsv.inputs["Value"], nb.add(1.0, nb.mul(nb.sub(luma.outputs[0], 0.5), i["Hue Variation"])))
-        nb.feed(hsv.inputs["Fac"], 1.0)
-        nb.feed(hsv.inputs["Color"], color)
-        color = hsv.outputs[0]
-
-        # Pattern overlay: pattern channels weighted by the swatch mask.
-        pat = nb.vmath("DOT_PRODUCT", i["Pattern"], i["Pattern Swatch Mask"])
-        pat = nb.mul(nb.clamp01(pat), i["Pattern Strength"])
-        color = nb.mix(color, i["Pattern Swatch"], pat)
+        def blend(r_vals, as_color=False):
+            # new gen: base → edge → crease; old gen ("Crease First"): base → crease → edge
+            b, e, c = r_vals
+            if as_color:
+                ec = nb.mix(nb.mix(b, e, edge), c, crease)
+                ce = nb.mix(nb.mix(b, c, crease), e, edge)
+                return nb.mix(ec, ce, i["Crease First"])
+            ec = nb.lerp(nb.lerp(b, e, edge), c, crease)
+            ce = nb.lerp(nb.lerp(b, c, crease), e, edge)
+            return nb.lerp(ec, ce, i["Crease First"])
 
         nb.feed(o["Color"], color)
-        nb.feed(o["Roughness"], blend(by_region(region_rough)))
-        nb.feed(o["Metallic"], blend(by_region(lambda r: i[f"{r} Metallic"])))
-        nb.feed(o["Specular"], blend(by_region(lambda r: i[f"{r} Specular"])))
-
-        dn = blend(by_region(lambda r: i[f"{r} Detail Normal"]), color=True)
+        nb.feed(o["Roughness"], blend([nb.add(i[f"{r} Roughness Mask"], i[f"{r} Roughness"], clamp=True)
+                                       for r in REGIONS]))
+        nb.feed(o["Metallic"], blend([i[f"{r} Metallic"] for r in REGIONS]))
+        nb.feed(o["Specular"], blend([i[f"{r} Specular"] for r in REGIONS]))
+        dn = blend([i[f"{r} Detail Normal"] for r in REGIONS], as_color=True)
         bl = nb.group(blend_normals())
         nb.feed(bl.inputs["Base"], dn)
         nb.feed(bl.inputs["Detail"], i["Medium Normal"])
         nb.feed(bl.inputs["Strength"], i["Medium Normal Strength"])
         nb.feed(o["Detail Normal"], bl.outputs[0])
-        nb.feed(o["Edge Mask"], edge)
-        nb.feed(o["Crease Mask"], crease)
-        nb.feed(o["Sheen"], i["Shade As Cloth"])
+        nb.feed(o["Shade As Cloth"], i["Shade As Cloth"])
     return _get("FT Surface Layer", build)
 
 

@@ -16,6 +16,15 @@ from .common import NEUTRAL, _col, _out, _packed_normal, _normal_tex, _fresnel_r
 # ─────────────────────────────────────────────────────────────────────────────
 
 def build_layered(ctx, old_gen=False):
+    """M_Character_8Layers_Master (new gen) / M_Character_Layered (old gen),
+    rebuilt from the game's compiled shaders (2026-11-12; checked texel by
+    texel with dev_tools/shader_extract/check_items.py on the regression set).
+    Per layer (picked by OCM blue): colour mask (sequential lerps, see
+    groups.color_mask) x overlay x colour texture, pattern, edge / crease
+    overlays, hue variation; then decals, CharacterDesaturation. The base
+    colour has no ambient occlusion in it (the game keeps AO separate).
+    "Shade as cloth" is a view-dependent specular: lerp(specular,
+    (1 - facing) x 0.5, ShadeAsCloth); squared (1 - facing) in the new master."""
     p, nb, log = ctx.p, ctx.nb, ctx.log
     arr_c = p.t("TextureArray_C") or p.t("TextureArray_Colors")
     arr_m = p.t("TextureArray_M") or p.t("TextureArray_Masks")
@@ -26,11 +35,19 @@ def build_layered(ctx, old_gen=False):
     # Occlusion / Curvature / Material ID (+ opacity in alpha)
     ocm = ctx.tex(p.t("OcclusionCurvatureMaterialID"), data=True, packed=True, label="OCM (AO / Curvature / ID / Opacity)")
     if ocm is not None:
-        ao, curv, mat_id = nb.separate(ocm.outputs["Color"], label="OCM channels")
+        ctx.ocm_red, curv, mat_id = nb.separate(ocm.outputs["Color"], label="OCM channels")
         ocm_alpha = ocm.outputs["Alpha"]
     else:
-        log.warn("  No OcclusionCurvatureMaterialID texture: edges, creases and AO will be flat.")
-        ao, curv, mat_id, ocm_alpha = 1.0, 0.5, 0.0, 1.0
+        log.warn("  No OcclusionCurvatureMaterialID texture: edges and creases will be flat.")
+        ctx.ocm_red, curv, mat_id, ocm_alpha = 1.0, 0.5, 0.0, 1.0
+    # BreakupMask: new gen on UV1 as is; old gen on UV2 x BreakupMaskTiling x Tiling
+    ctx.breakup = 1.0
+    bpath = p.t("BreakupMask")
+    if bpath:
+        bt = ctx.tex(bpath, data=True, label="BreakupMask",
+                     scale=((p.s("BreakupMaskTiling", 1.0) or 1.0) * tiling) if old_gen else 1.0, detail=old_gen)
+        if bt is not None:
+            ctx.breakup = ctx.red(bt)
 
     cmask = ctx.tex(p.t("ColorMask"), data=True, label="Color Mask")
     cmask_out = _out(cmask, fallback=(1, 0, 0, 1))
@@ -54,8 +71,10 @@ def build_layered(ctx, old_gen=False):
     else:
         lay = _combine_layers(ctx, outs, ctx.layer_masks)
 
-    color = nb.mix(lay["Color"], ao, 1.0, "MULTIPLY", label="Ambient Occlusion")
+    color = lay["Color"]
     normal_detail = lay["Detail Normal"]
+    rough, metal = lay["Roughness"], lay["Metallic"]
+    cloth = lay["Shade As Cloth"]
 
     # Decals
     if old_gen:
@@ -65,7 +84,20 @@ def build_layered(ctx, old_gen=False):
             if p.sw(f"{k}_UseDecal"):
                 color = _old_gen_decal(ctx, k, color)
     else:
-        color = _global_decal(ctx, color)
+        color, dmask = _global_decal(ctx, color)
+        if dmask is not None:
+            # "complex decal" masks: inside the decal (x DecalSurfaceBlend), R = roughness,
+            # G = metalness, B = shade-as-cloth (DecalMasks, default T_ComplexDecal_M)
+            cov, dm = dmask
+            dr, dg, db = nb.separate(dm.outputs["Color"], label="Decal masks (R rough, G metal, B cloth)")
+            rough = nb.lerp(rough, dr, cov)
+            metal = nb.lerp(metal, dg, cov)
+            cloth = nb.lerp(cloth, db, cov)
+
+    desat = p.s("CharacterDesaturation", 0.0)
+    if desat:
+        lum = nb.vmath("DOT_PRODUCT", color, (0.3, 0.59, 0.11))
+        color = nb.mix(color, nb.combine(lum, lum, lum), min(max(desat, 0.0), 1.0), label="CharacterDesaturation")
 
     # Normals: mesh normal map + detail normals
     mesh_n = ctx.tex(p.t("Normal"), data=True, label="Normal")
@@ -75,16 +107,18 @@ def build_layered(ctx, old_gen=False):
 
     bsdf = ctx.bsdf()
     nb.feed(bsdf.inputs["Base Color"], color)
-    # "Shade As Cloth" (UE cloth shading: soft fuzz) is approximated with sheen below.
-    nb.feed(bsdf.inputs["Roughness"], lay["Roughness"])
-    nb.feed(bsdf.inputs["Metallic"], lay["Metallic"])
-    nb.feed(bsdf.inputs["Specular IOR Level"], lay["Specular"])
+    nb.feed(bsdf.inputs["Roughness"], rough)
+    nb.feed(bsdf.inputs["Metallic"], metal)
+    # shade as cloth: specular follows the viewing angle (none head-on)
+    lw = nb.node("ShaderNodeLayerWeight", "Facing (1 - N.V)")
+    nb.feed(lw.inputs["Blend"], 0.5)
+    facing = lw.outputs["Facing"]
+    if not old_gen:
+        facing = nb.mul(facing, facing)
+    cloth_spec = nb.math("MULTIPLY", facing, 0.5, label="Cloth specular")
+    nb.feed(bsdf.inputs["Specular IOR Level"],
+            nb.lerp(lay["Specular"], cloth_spec, cloth, clamp=True) if cloth != 0.0 else lay["Specular"])
     nb.feed(bsdf.inputs["Normal"], ctx.normal_map(blend.outputs[0]))
-    if "Sheen Weight" in bsdf.inputs:
-        nb.feed(bsdf.inputs["Sheen Weight"], lay["Sheen"])
-        # Cloth fuzz takes the fabric colour; a white sheen washes reds out to pink.
-        if "Sheen Tint" in bsdf.inputs:
-            nb.feed(bsdf.inputs["Sheen Tint"], color)
 
     if p.sw("bUseOpacityMask") and ocm is not None:
         clip = p.opacity_clip if p.opacity_clip else 0.3333
@@ -104,33 +138,68 @@ def _build_layer(ctx, k, curv, cmask_out, scheme_tex, old_gen, arr_c, arr_m, arr
 
     detail = s("DetailTiling", 20.0) * tiling
 
-    # Colour mask → this layer's colour
-    cm = nb.group(groups.color_mask(), label=f"Layer {k} Colours")
-    nb.feed(cm.inputs["Color Mask"], cmask_out)
-    nb.feed(cm.inputs["Swatch"], _col(v("ColorMaskSwatch")))
-    for name in ("ColorA", "ColorB", "ColorC", "ColorA2", "ColorB2", "ColorC2"):
-        nb.feed(cm.inputs[name], _col(p.v(name)))
+    # Edge / crease masks
+    rm_g = nb.group(groups.region_masks(), label=f"Layer {k} edge / crease")
+    nb.feed(rm_g.inputs["Curvature"], curv)
+    nb.feed(rm_g.inputs["Edge Scale"], ctx.ocm_red)
+    nb.feed(rm_g.inputs["Breakup Mask"], ctx.breakup)
+    nb.feed(rm_g.inputs["Old Gen"], 1.0 if old_gen else 0.0)
+    if old_gen and scheme_tex is not None:
+        _r, wg, wb = nb.separate(scheme_tex.outputs["Color"], label="BaseColor (R scheme, G crease wear, B edge wear)")
+        nb.feed(rm_g.inputs["Edge Wear"], wb)
+        nb.feed(rm_g.inputs["Crease Wear"], wg)
+    regions_used = {"Base": True, "Edge": s("EdgeAmount") > 0, "Crease": s("CreaseAmount") > 0}
+    for r in ("Edge", "Crease"):
+        nb.feed(rm_g.inputs[f"{r} Amount"], s(f"{r}Amount"))
+        nb.feed(rm_g.inputs[f"{r} Softness"], s(f"{r}MaskSoftness"))
+        if regions_used[r]:
+            bm = ctx.slice(arr_m, s(f"{r}MaskID"), data=True, scale=detail * s(f"{r}MaskTiling", 1.0),
+                           label=f"L{k} {r} Mask [{int(s(f'{r}MaskID'))}]")
+            if bm is not None:
+                nb.feed(rm_g.inputs[f"{r} Mask"], ctx.red(bm))
+    edge, crease = rm_g.outputs["Edge"], rm_g.outputs["Crease"]
+
+    # Colour mask strength: base x sat(2 (1 - edge - crease)) + edge + crease strengths
+    bs, es, cs = (s(f"{r}ColorMaskStrength", 1.0) for r in ("Base", "Edge", "Crease"))
+    base_w = nb.clamp01(nb.mul(nb.sub(nb.sub(1.0, edge), crease), 2.0))
+    strength = nb.mul(base_w, bs)
+    if es:
+        strength = nb.math("MULTIPLY_ADD", edge, es, strength)
+    if cs:
+        strength = nb.math("MULTIPLY_ADD", crease, cs, strength)
+    strength = nb.clamp01(strength)
+
     # Colour scheme (ColorA/B/C vs ColorA2/B2/C2) is picked per pixel by the
     # BaseColor texture's red channel; old-gen scales it by ColorSchemeBlend.
-    # E.g. CombatPants Fnatic: R = 0 on the pocket bands → scheme 1 (light grey).
     blend_amt = s("ColorSchemeBlend", 1.0) if old_gen else 1.0
     if scheme_tex is not None:
         scheme_in = nb.mul(ctx.red(scheme_tex), blend_amt, clamp=True)
     else:
         scheme_in = blend_amt if old_gen else 0.0
+
+    mask = nb.mix(cmask_out, _col(v("ColorMaskSwatch")), 1.0, "MULTIPLY", label=f"L{k} mask x swatch")
+    if not old_gen:
+        mask = _new_gen_pattern(ctx, k, mask, arr_p, tiling)
+
+    cm = nb.group(groups.color_mask(), label=f"Layer {k} Colours")
+    nb.feed(cm.inputs["Color Mask"], mask)
+    nb.feed(cm.inputs["Strength"], strength)
+    for name in ("ColorA", "ColorB", "ColorC", "ColorA2", "ColorB2", "ColorC2"):
+        nb.feed(cm.inputs[name], _col(p.v(name)))
     nb.feed(cm.inputs["Scheme Mask"], scheme_in)
 
     g = nb.group(groups.surface_layer(), label=f"Layer {k}")
     gi = g.inputs
     nb.feed(gi["Mask Color"], cm.outputs[0])
-    nb.feed(gi["Curvature"], curv)
+    nb.feed(gi["Edge Mask"], edge)
+    nb.feed(gi["Crease Mask"], crease)
+    nb.feed(gi["Crease First"], 1.0 if old_gen else 0.0)
 
-    regions_used = {"Base": True, "Edge": s("EdgeAmount") > 0, "Crease": s("CreaseAmount") > 0}
     for r in ("Base", "Edge", "Crease"):
         ov = v(f"{r}ColorOverlay", (1, 1, 1, 0))
-        nb.feed(gi[f"{r} Color Mask Strength"], s(f"{r}ColorMaskStrength", 1.0))
         nb.feed(gi[f"{r} Overlay"], _col(ov))
-        nb.feed(gi[f"{r} Overlay Alpha"], ov[3])
+        if r != "Base":
+            nb.feed(gi[f"{r} Overlay Alpha"], ov[3])
         nb.feed(gi[f"{r} Texture Strength"], s(f"{r}TextureStrength"))
         nb.feed(gi[f"{r} Roughness"], s(f"{r}Roughness", 0.0))
         nb.feed(gi[f"{r} Metallic"], s(f"{r}Metallicity"))
@@ -148,16 +217,6 @@ def _build_layer(ctx, k, curv, cmask_out, scheme_tex, old_gen, arr_c, arr_m, arr
         if dn is not None:
             nb.feed(gi[f"{r} Detail Normal"], dn.outputs["Color"])
 
-    for r in ("Edge", "Crease"):
-        nb.feed(gi[f"{r} Amount"], s(f"{r}Amount"))
-        nb.feed(gi[f"{r} Softness"], s(f"{r}MaskSoftness"))
-        if regions_used[r]:
-            bm = ctx.slice(arr_m, s(f"{r}MaskID"), data=True, scale=detail * s(f"{r}MaskTiling", 1.0),
-                           label=f"L{k} {r} Breakup [{int(s(f'{r}MaskID'))}]")
-            if bm is not None:
-                nb.feed(gi[f"{r} Breakup"], ctx.red(bm))
-    nb.feed(gi["Edge Thickness"], min(max(s("EdgeMaskThickness", 0.3), 0.0), 0.49))
-
     if any(s(f"{r}TextureStrength") > 0 for r in ("Base", "Edge", "Crease")):
         ct = ctx.slice(arr_c, s("ColorTextureID"), data=False, scale=detail * s("ColorTextureTiling", 1.0),
                        label=f"L{k} Color Texture [{int(s('ColorTextureID'))}]")
@@ -166,7 +225,7 @@ def _build_layer(ctx, k, curv, cmask_out, scheme_tex, old_gen, arr_c, arr_m, arr
 
     hue = s("HueVariationStrength")
     nb.feed(gi["Hue Variation"], hue)
-    if hue > 0:
+    if hue:
         hn = ctx.tex(p.t("HueVariation"), data=False, scale=s("HueVariationTiling", 0.15) or 0.15,
                      label=f"L{k} Hue Noise", detail=True)
         if hn is not None:
@@ -174,35 +233,8 @@ def _build_layer(ctx, k, curv, cmask_out, scheme_tex, old_gen, arr_c, arr_m, arr
         else:
             nb.feed(gi["Hue Variation"], 0.0)
 
-    # Pattern overlay. PatternSwatch is a channel selector, not a colour: its
-    # RGB picks which channels of the pattern texture are used and its alpha
-    # switches the pattern on. Like a second colour mask, the selected pattern
-    # channels R/G/B paint ColorA/B/C (same colour scheme). PatternSwatchMask
-    # limits it to the colour-mask channels it lists. E.g. Ballerina
-    # MasqueradeMask Glitter rim: swatch (1,0,0,1) → gold-on-gold engraving
-    # instead of red stripes.
-    sw = v("PatternSwatch", (0, 0, 0, 0))
-    if sw[3] > 0 and any(c > 0 for c in sw[:3]):
-        pt = ctx.slice(arr_p, s("PatternID"), data=True, scale=s("PatternTiling", 1.0),
-                       label=f"L{k} Pattern [{int(s('PatternID'))}]")
-        if pt is not None:
-            sel = (sw[0], sw[1], sw[2])
-            picked = nb.vmath("MULTIPLY", pt.outputs["Color"], sel, label=f"L{k} pattern channels")
-            pcm = nb.group(groups.color_mask(), label=f"Layer {k} Pattern Colours")
-            nb.feed(pcm.inputs["Color Mask"], pt.outputs["Color"])
-            nb.feed(pcm.inputs["Swatch"], _col(sel))
-            for name in ("ColorA", "ColorB", "ColorC", "ColorA2", "ColorB2", "ColorC2"):
-                nb.feed(pcm.inputs[name], _col(p.v(name)))
-            nb.feed(pcm.inputs["Scheme Mask"], scheme_in)
-            nb.feed(pcm.inputs["Fallback"], (0, 0, 0, 1))
-            total = nb.vmath("DOT_PRODUCT", picked, (1.0, 1.0, 1.0))
-            inv = nb.math("DIVIDE", 1.0, nb.math("MAXIMUM", total, 0.001))
-            pcol = nb.vmath("SCALE", pcm.outputs[0], scale=inv, label=f"L{k} pattern colour")
-            gate = nb.vmath("DOT_PRODUCT", cmask_out, tuple(v("PatternSwatchMask")[:3]))
-            nb.feed(gi["Pattern"], picked)
-            nb.feed(gi["Pattern Swatch Mask"], (1, 1, 1, 1))
-            nb.feed(gi["Pattern Swatch"], pcol)
-            nb.feed(gi["Pattern Strength"], nb.mul(nb.clamp01(gate) if _is_socket(gate) else gate, sw[3], clamp=True))
+    if old_gen:
+        _old_gen_pattern(ctx, k, gi, cmask_out, arr_p, tiling)
 
     mns = s("MediumNormalStrength")
     nb.feed(gi["Medium Normal Strength"], mns)
@@ -214,7 +246,55 @@ def _build_layer(ctx, k, curv, cmask_out, scheme_tex, old_gen, arr_c, arr_m, arr
             nb.feed(gi["Medium Normal"], mn.outputs["Color"])
     nb.feed(gi["Shade As Cloth"], s("ShadeAsCloth"))
     return {name: g.outputs[name] for name in
-            ("Color", "Roughness", "Metallic", "Specular", "Detail Normal", "Sheen")}
+            ("Color", "Roughness", "Metallic", "Specular", "Detail Normal", "Shade As Cloth")}
+
+
+def _new_gen_pattern(ctx, k, mask, arr_p, tiling):
+    """New-gen pattern: moves the colour-mask channels toward PatternSwatch.rgb
+    (so the pattern paints ColorA/B/C) where the pattern (R of slice PatternID,
+    first UV channel x Tiling x PatternTiling) is set. Weight = PatternSwatchMask.a x p,
+    lerped to .r / .g / .b x p by the mask's R / G / B, x PatternSwatch.a."""
+    p, nb = ctx.p, ctx.nb
+    sw = p.v(f"{k}_PatternSwatch", (0, 0, 0, 0))
+    psm = p.v(f"{k}_PatternSwatchMask", (1, 1, 1, 1))
+    if not sw[3] or not any(psm):
+        return mask
+    pt = ctx.slice(arr_p, p.s(f"{k}_PatternID"), data=True, scale=tiling * (p.s(f"{k}_PatternTiling", 1.0) or 1.0),
+                   label=f"L{k} Pattern [{int(p.s(f'{k}_PatternID'))}]")
+    if pt is None:
+        return mask
+    nb.feed(pt.inputs["Vector"], ctx.uv(tiling * (p.s(f"{k}_PatternTiling", 1.0) or 1.0)))
+    pat = ctx.red(pt)
+    mr, mg, mb = nb.separate(mask)
+    w = nb.mul(pat, psm[3])
+    for ch, val in zip((mr, mg, mb), psm[:3]):
+        w = nb.lerp(w, nb.mul(pat, val), ch)
+    w = nb.mul(w, sw[3], clamp=True)
+    return nb.mix(mask, _col(sw), w, label=f"L{k} pattern → swatch channels")
+
+
+def _old_gen_pattern(ctx, k, gi, cmask_out, arr_p, tiling):
+    """Old-gen pattern (slice PatternID on UV2 x Tiling x PatternTiling):
+    colour → pattern RGB by PatternMask.a, then PatternColorA/B/C by the
+    pattern's R/G/B x their alphas; weight from the ColorMask texture:
+    lerp(lerp(R x PatternMask.r, PatternMask.g, G), PatternMask.b, B)."""
+    p, nb = ctx.p, ctx.nb
+    pm = p.v(f"{k}_PatternMask", (0, 0, 0, 0))
+    if not any(pm[:3]):
+        return
+    pt = ctx.slice(arr_p, p.s(f"{k}_PatternID"), data=True, scale=tiling * (p.s(f"{k}_PatternTiling", 1.0) or 1.0),
+                   label=f"L{k} Pattern [{int(p.s(f'{k}_PatternID'))}]")
+    if pt is None:
+        return
+    nb.feed(gi["Pattern"], pt.outputs["Color"])
+    nb.feed(gi["Pattern Mask Alpha"], pm[3])
+    for x in "ABC":
+        c = p.v(f"{k}_PatternColor{x}", (1, 1, 1, 0))
+        nb.feed(gi[f"Pattern Color {x}"], _col(c))
+        nb.feed(gi[f"Pattern Color {x} Alpha"], c[3])
+    r, g, b = nb.separate(cmask_out)
+    w = nb.lerp(nb.lerp(nb.mul(r, pm[0]), pm[1], g), pm[2], b)
+    nb.feed(gi["Pattern Weight"], nb.clamp01(w))
 
 
 def _layer_masks(ctx, mat_id, n_layers):
@@ -370,15 +450,27 @@ def _global_decal(ctx, color):
     p = ctx.p
     path = p.t("Decal")
     if not path or asset_name(path).lower() in defaults.NULL_TEXTURES:
-        return color
+        return color, None
     size = p.s("DecalSize", 1.0) or 1.0
     width = p.s("DecalWidth", 1.0) or 1.0
     vec = _decal_vector(ctx, 0.5 + p.s("DecalPositionU"), 0.5 + p.s("DecalPositionV"),
                         size, size * width, p.s("DecalRotation"))
     number = p.s("DecalNumber", 32.0) if p.s("UseDecalNumber") else None
     ctx.log.info(f"  Decal {asset_name(path)}")
-    return _apply_decal(ctx, color, path, vec, p.v("DecalColorA"), p.v("DecalColorB", (0, 0, 0, 1)),
-                        recolor=p.s("DecalTint", 1.0), number=number)
+    out = _apply_decal(ctx, color, path, vec, p.v("DecalColorA"), p.v("DecalColorB", (0, 0, 0, 1)),
+                       recolor=p.s("DecalTint", 1.0), number=number)
+    masks = None
+    mpath = p.t("DecalMasks")
+    surf = p.s("DecalSurfaceBlend", 0.0)
+    if number is None and mpath and surf:
+        name = asset_name(path).lower()
+        t = ctx.tex(path, data=name.endswith("_m") or name.endswith("_cm"), packed=True, vector=vec,
+                    extension="CLIP")
+        dm = ctx.tex(mpath, data=True, vector=vec, extension="CLIP", label="DecalMasks")
+        if t is not None and dm is not None:
+            cov = t.outputs["Alpha"] if surf >= 1.0 else ctx.nb.mul(t.outputs["Alpha"], surf, clamp=True)
+            masks = (cov, dm)
+    return out, masks
 
 
 def _old_gen_decal(ctx, k, color):
