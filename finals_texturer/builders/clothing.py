@@ -327,7 +327,7 @@ def _combine_layers(ctx, outs, masks):
 
 # ── decals ───────────────────────────────────────────────────────────────────
 
-def _decal_vector(ctx, cx, cy, sx, sy, rotation):
+def _decal_vector(ctx, cx, cy, sx, sy, rotation, scale_first=False):
     """UV → decal space: decal UV = S ⊙ R(uv − centre) + 0.5.
 
     cx, cy  decal centre in Blender UV space
@@ -343,8 +343,12 @@ def _decal_vector(ctx, cx, cy, sx, sy, rotation):
     uv = nb.vmath("FRACTION", ctx.uv(), label="Wrap UV to 0..1")
     rel = nb.vmath("SUBTRACT", uv, (cx, cy, 0.0), label="Decal centre")
     r = nb.node("ShaderNodeVectorRotate", "Decal rotation", rotation_type="Z_AXIS")
-    nb.feed(r.inputs["Vector"], rel)
     r.inputs["Angle"].default_value = rot
+    if scale_first:
+        # new gen (compiled shader): scale (DecalSize, x DecalWidth on V), then rotate
+        nb.feed(r.inputs["Vector"], nb.vmath("MULTIPLY", rel, (sx, sy, 1.0), label="Decal size"))
+        return nb.vmath("ADD", r.outputs[0], (0.5, 0.5, 0.0), label="Decal placement")
+    nb.feed(r.inputs["Vector"], rel)
     scaled = nb.vmath("MULTIPLY", r.outputs[0], (sx, sy, 1.0), label="Decal size")
     return nb.vmath("ADD", scaled, (0.5, 0.5, 0.0), label="Decal placement")
 
@@ -442,10 +446,12 @@ def _global_decal(ctx, color):
     """New-gen (8Layers) decal: one decal placed by DecalSize/PositionU/V.
 
     DecalSize is how many decals fit across the UV map (1 = covers it all,
-    e.g. full-UV livery textures). Centre = UV middle + (PositionU, PositionV),
-    the same convention as old-gen placement; checked on the BikerLoosePants
-    AlfaActa skin (slogan upright along the red side stripe). DecalTint blends
-    from the decal's own colours (0) to DecalColorA/B (1).
+    e.g. full-UV livery textures). From the compiled shader (2026-11-12):
+    centre = (0.5 - PositionU, 0.5 + PositionV) in Blender UVs (U flipped, like
+    old-gen placement; 0.5 + PositionU put the BaseballCap CNS triangle on the
+    brim instead of the front), scaled (DecalWidth on V) and then rotated by
+    -DecalRotation turns. DecalTint blends from the decal's own colours (0) to
+    DecalColorA/B (1).
     """
     p = ctx.p
     path = p.t("Decal")
@@ -453,8 +459,8 @@ def _global_decal(ctx, color):
         return color, None
     size = p.s("DecalSize", 1.0) or 1.0
     width = p.s("DecalWidth", 1.0) or 1.0
-    vec = _decal_vector(ctx, 0.5 + p.s("DecalPositionU"), 0.5 + p.s("DecalPositionV"),
-                        size, size * width, p.s("DecalRotation"))
+    vec = _decal_vector(ctx, 0.5 - p.s("DecalPositionU"), 0.5 + p.s("DecalPositionV"),
+                        size, size * width, p.s("DecalRotation"), scale_first=True)
     number = p.s("DecalNumber", 32.0) if p.s("UseDecalNumber") else None
     ctx.log.info(f"  Decal {asset_name(path)}")
     out = _apply_decal(ctx, color, path, vec, p.v("DecalColorA"), p.v("DecalColorB", (0, 0, 0, 1)),
