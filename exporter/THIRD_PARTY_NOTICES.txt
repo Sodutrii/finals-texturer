@@ -1,0 +1,10 @@
+ft_exporter (Finals Texturer's Export Now helper) uses these libraries, shipped as the DLLs in this folder:
+
+- CUE4Parse and CUE4Parse-Conversion (https://github.com/FabianFG/CUE4Parse), Apache License 2.0
+- Newtonsoft.Json, MIT License
+- SkiaSharp, MIT License; SixLabors.ImageSharp, Six Labors Split License
+- AssetRipper.TextureDecoder, MIT License; SharpGLTF, MIT License
+- and their dependencies (see each package's licence on nuget.org)
+
+Not shipped: the Oodle, zlib and Detex libraries and the game's AES key / mappings are read from the
+user's own FModel installation at runtime.

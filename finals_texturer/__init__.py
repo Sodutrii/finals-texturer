@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Finals Texturer",
     "author": "Finals Texturer contributors",
-    "version": (0, 13, 2),
+    "version": (0, 14, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Finals",
     "description": "Imports The Finals clothing (.psk) and rebuilds its layered materials from FModel exports",
@@ -16,7 +16,7 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
-from . import character, clothing_tab, importer, library_ui, rigging, search, ui, weapons
+from . import character, clothing_tab, exporter, importer, library_ui, rigging, search, ui, weapons
 from .ue_assets import AssetFinder, Log
 
 ADDON_ID = __package__ or __name__
@@ -152,6 +152,7 @@ class FT_OT_rescan(bpy.types.Operator):
         character.clear_cache()
         weapons.clear_cache()
         clothing_tab.clear_cache()
+        exporter.clear_cache()
         self.report({"INFO"}, "Re-read the export folder")
         return {"FINISHED"}
 
@@ -220,6 +221,7 @@ CLASSES = (FT_Preferences, FT_OT_import, FT_OT_rescan, FT_OT_show_log, FT_PT_pan
 
 def register():
     ui.register()
+    exporter.register()
     search.register()
     for c in CLASSES:
         bpy.utils.register_class(c)
@@ -254,4 +256,5 @@ def unregister():
     for c in reversed(CLASSES):
         bpy.utils.unregister_class(c)
     search.unregister()
+    exporter.unregister()
     ui.unregister()

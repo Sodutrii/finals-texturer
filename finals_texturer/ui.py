@@ -98,12 +98,16 @@ def item_root(folder):
     return "/".join(parts)
 
 
-def draw_status(layout, level, text, groups=None):
-    """Ready level + text, then what to export grouped by kind, and a Copy Path button for each
-    folder FModel should export (the missing files' item folders, ready to paste into FModel's search)."""
+def draw_status(layout, level, text, groups=None, export=None, what=""):
+    """Ready level + text, then what to export grouped by kind, an Export Now button (export: the
+    game paths for the bundled exporter, see exporter.py) and a Copy Path button for each folder
+    FModel should export (the missing files' item folders, ready to paste into FModel's search)."""
+    from . import exporter
     box = layout.box()
     col = box.column(align=True)
     col.label(text=text, icon=READY_ICON.get(level, "BLANK1"))
+    if exporter.running() or (export and level < 2):
+        exporter.draw(box, export if level < 2 else None, what)
     if not groups:
         return
     if isinstance(groups, (list, tuple)):
@@ -112,7 +116,8 @@ def draw_status(layout, level, text, groups=None):
     if not groups:
         return
     col.separator()
-    col.label(text="Export in FModel:", icon="EXPORT")
+    col.label(text="Missing (or export in FModel):" if export and exporter.bundled() else "Export in FModel:",
+              icon="EXPORT")
     for kind, folders in groups.items():
         col.label(text=f"{kind}:")
         for f in folders[:5]:
@@ -226,18 +231,30 @@ class FT_OT_check_setup(bpy.types.Operator):
     bl_idname = "finals_texturer.check_setup"
     bl_label = "Check Setup"
 
-    def invoke(self, context, event):
-        return context.window_manager.invoke_popup(self, width=520)
-
     def execute(self, context):
         return {"FINISHED"}
 
+    def invoke(self, context, event):
+        from . import exporter
+        exporter.check(refresh=True)
+        return context.window_manager.invoke_popup(self, width=520)
+
     def draw(self, context):
-        from . import _root
+        from . import _root, exporter
         root = _root(context)
         lay = self.layout
         ok, msg = check_root(root)
         lay.label(text=f"Exports folder: {msg}", icon="CHECKMARK" if ok else "ERROR")
+        if exporter.bundled():
+            st = exporter.check()
+            if st.get("ok"):
+                lay.label(text=f"Export Now: ready (FModel setup for {st.get('game_dir', 'The Finals')})",
+                          icon="CHECKMARK")
+            else:
+                col = lay.column(align=True)
+                col.label(text="Export Now: not ready", icon="ERROR")
+                for p in st.get("problems", []):
+                    col.label(text=f"   {p}")
         if not ok:
             return
         rep = setup_report(root)

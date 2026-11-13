@@ -50,6 +50,19 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - uses: actions/setup-dotnet@v4
+        if: steps.check.outputs.exists == 'false'
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build exporter
+        if: steps.check.outputs.exists == 'false'
+        # Export Now's helper (exporter/), for Windows, using the .NET runtime FModel already needs
+        run: |
+          dotnet publish exporter/FtExporter.csproj -c Release -r win-x64 --self-contained false \
+            -p:DebugType=none -o finals_texturer/bin/exporter
+          test -f finals_texturer/bin/exporter/ft_exporter.exe
+
       - name: Build zip
         if: steps.check.outputs.exists == 'false'
         run: |

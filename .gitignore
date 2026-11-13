@@ -37,3 +37,8 @@ desktop.ini
 # ── Developer test tools (contain paths to this machine) ─────────────────────
 # Uncomment to keep them private; left tracked so contributors can use them.
 # dev_tools/
+
+# ── Exporter build output (built by the release workflow / exporter/README.md) ─
+finals_texturer/bin/
+exporter/bin/
+exporter/obj/

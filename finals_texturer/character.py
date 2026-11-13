@@ -638,7 +638,9 @@ def draw(layout, context):
     if face is not None:
         ui.draw_preview(layout, store_image(face))
         level, text, groups = status(root, face, sc.ft_char_class)
-        ui.draw_status(layout, level, text, groups)
+        from . import exporter
+        ui.draw_status(layout, level, text, groups, export=[exporter.rel_path(root, face["path"])],
+                       what=face["name"])
     row = layout.row(align=True)
     row.operator(FT_OT_char_import.bl_idname, text="Import", icon="IMPORT")
     row.operator(FT_OT_char_update.bl_idname, text="Apply to Selected", icon="MATERIAL")

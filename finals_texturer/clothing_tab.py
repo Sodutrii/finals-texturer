@@ -271,6 +271,17 @@ def status(root, skin_path, cls="M"):
     return res
 
 
+def export_paths(root, skin_path):
+    """What Export Now hands the exporter for a skin: the skin (it brings the files next to it and
+    everything it references) and the item folder's own files (base meshes, textures, materials)."""
+    from . import exporter
+    if not skin_path:
+        return []
+    norm = skin_path.replace("\\", "/")
+    item_dir = norm.rsplit("/Skins/", 1)[0] if "/Skins/" in norm else os.path.dirname(norm)
+    return [exporter.rel_path(root, skin_path), exporter.top_level(root, item_dir)]
+
+
 def store_image(root, skin):
     if skin is None:
         return ""
@@ -471,7 +482,9 @@ def draw(layout, context):
         box = layout.box()
         box.label(text=f"Outfit: {library.display_name(e)}", icon="OUTLINER_COLLECTION")
         level, text, groups = _outfit_status(context, lib, e)
-        ui.draw_status(box, level, text, groups)
+        pieces = [os.path.join(root, p["da"]) for p in library.outfit_items(lib, e) if p and p.get("da")]
+        ui.draw_status(box, level, text, groups, export=[x for p in pieces for x in export_paths(root, p)],
+                       what=library.display_name(e))
         box.operator(FT_OT_cloth_outfit.bl_idname, icon="IMPORT")
     col = layout.column(align=True)
     col.prop(sc, "ft_cloth_cat", text="Category")
@@ -481,7 +494,8 @@ def draw(layout, context):
     if s is not None:
         ui.draw_preview(layout, store_image(root, s))
         level, text, groups = status(root, s["path"], sc.ft_char_class)
-        ui.draw_status(layout, level, text, groups)
+        ui.draw_status(layout, level, text, groups, export=export_paths(root, s["path"]),
+                       what=os.path.basename(s["path"]))
     row = layout.row(align=True)
     row.operator(FT_OT_cloth_import.bl_idname, icon="IMPORT")
     row.operator(FT_OT_cloth_apply.bl_idname, icon="MATERIAL")

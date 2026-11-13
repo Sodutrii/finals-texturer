@@ -204,6 +204,19 @@ def skin_by_id(root, weapon, sid):
     return next((s for s in skins(root, weapon) if s["id"] == sid), None)
 
 
+def export_paths(root, weapon, skin):
+    """What Export Now hands the exporter: the weapon folder's own files (names, base parts), the
+    skin (with everything it references), or for the default skin the Skins folder's own files (the
+    default visual data assets)."""
+    from . import exporter
+    out = [exporter.top_level(root, weapon["dir"])]
+    if skin and skin.get("path"):
+        out.append(exporter.rel_path(root, skin["path"]))
+    else:
+        out.append(exporter.top_level(root, os.path.join(weapon["dir"], "Skins")))
+    return out
+
+
 def visual_path(root, weapon, skin):
     """The WeaponVisualsDataAsset a skin uses (the default visual for the default skin)."""
     if skin and skin["path"]:
@@ -694,7 +707,8 @@ def draw(layout, context):
     if w is not None and s is not None:
         ui.draw_preview(layout, store_image(root, s))
         level, text, groups = status(root, w, s)
-        ui.draw_status(layout, level, text, groups)
+        ui.draw_status(layout, level, text, groups, export=export_paths(root, w, s),
+                       what=f"{w['name']} {s.get('name', '')}".strip())
     row = layout.row(align=True)
     row.operator(FT_OT_weapon_import.bl_idname, text="Import", icon="IMPORT")
     row.operator(FT_OT_weapon_apply.bl_idname, text="Apply to Selected", icon="MATERIAL")
