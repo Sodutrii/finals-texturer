@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Finals Texturer",
     "author": "Finals Texturer contributors",
-    "version": (0, 14, 0),
+    "version": (0, 19, 1),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Finals",
     "description": "Imports The Finals clothing (.psk) and rebuilds its layered materials from FModel exports",
@@ -16,7 +16,7 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
-from . import character, clothing_tab, exporter, importer, library_ui, rigging, search, ui, weapons
+from . import browse, character, clothing_tab, exporter, importer, library_ui, objects_tab, rigging, search, ui, weapons
 from .ue_assets import AssetFinder, Log
 
 ADDON_ID = __package__ or __name__
@@ -45,16 +45,17 @@ class FT_Preferences(bpy.types.AddonPreferences):
     )
     import_size: EnumProperty(
         name="Import Size",
-        items=(("REAL", "Real size (metres)", "Scale imports to real-world size: 1 Blender unit = 1 m, "
+        items=(("REAL", "Blender Adjusted Scale", "Real-world size in Blender: 1 Blender unit = 1 m, "
                 "a Medium body is 1.68 m. The scale is applied to the mesh and bones (object scale stays 1)"),
-               ("GAME", "Game units (centimetres)", "Keep the game's units: 1 Blender unit = 1 cm, "
-                "a Medium body is 168 units tall")),
-        default="GAME",
+               ("GAME", "Ingame Scale", "Keep the game's numbers: 1 Blender unit = 1 cm, so a Medium body is "
+                "168 units tall (shows as 168 m in a default Blender scene)")),
+        default="REAL",
     )
 
     def draw(self, context):
         self.layout.prop(self, "export_root")
         self.layout.prop(self, "import_size")
+        browse.draw_prefs(self.layout)
 
 
 def _set_numbers(self, context):
@@ -151,6 +152,7 @@ class FT_OT_rescan(bpy.types.Operator):
         AssetFinder.clear_cache()
         character.clear_cache()
         weapons.clear_cache()
+        objects_tab.clear_cache()
         clothing_tab.clear_cache()
         exporter.clear_cache()
         self.report({"INFO"}, "Re-read the export folder")
@@ -207,6 +209,8 @@ class FT_PT_panel(bpy.types.Panel):
             character.draw(lay, context)
         elif tab == "WEAPONS":
             weapons.draw(lay, context)
+        elif tab == "OBJECTS":
+            objects_tab.draw(lay, context)
         else:
             clothing_tab.draw(lay, context)
         ui.draw_footer(lay)
@@ -223,18 +227,21 @@ def register():
     ui.register()
     exporter.register()
     search.register()
+    browse.register()
     for c in CLASSES:
         bpy.utils.register_class(c)
     library_ui.register(_root, ADDON_ID, _report)
     clothing_tab.register(_root, _report)
     character.register(_root, _report)
     weapons.register(_root, _report)
+    objects_tab.register(_root, _report)
     rigging.register()
     bpy.types.WindowManager.ft_tab = EnumProperty(
         name="Tab",
         items=(("CHARACTER", "Character", "Body, face and body type", "USER", 0),
                ("CLOTHING", "Clothing", "Import clothing and build its materials", "MATCLOTH", 1),
                ("WEAPONS", "Weapons", "Import weapons with their skins", "TOOL_SETTINGS", 3),
+               ("OBJECTS", "Objects", "Cashout objectives, death statues, arena carryables, gameplay objects", "PACKAGE", 4),
                ("RIGGING", "Rigging", "Simplify the game rig, attach clothing, Auto-Rig Pro controls",
                 "ARMATURE_DATA", 2)))
     bpy.types.Scene.ft_number = IntProperty(
@@ -250,11 +257,13 @@ def unregister():
     rigging.unregister()
     character.unregister()
     weapons.unregister()
+    objects_tab.unregister()
     del bpy.types.WindowManager.ft_tab
     bpy.types.TOPBAR_MT_file_import.remove(_menu_import)
     del bpy.types.Scene.ft_number
     for c in reversed(CLASSES):
         bpy.utils.unregister_class(c)
+    browse.unregister()
     search.unregister()
     exporter.unregister()
     ui.unregister()

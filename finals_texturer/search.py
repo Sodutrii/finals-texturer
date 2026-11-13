@@ -8,7 +8,8 @@ from bpy.props import CollectionProperty, IntProperty, StringProperty
 
 from . import ui
 
-_tabs = {}          # tab → {"find": fn(context, query) → [(ident, name, detail, ready, icon)], "pick": fn(context, ident)}
+_tabs = {}          # tab → {"find": fn(context, query) → [(ident, name, detail, ready, icon)], "pick": fn(context, ident),
+#                 "image": fn(context, ident) → (local PNG or "", game path or "") or None (browse.py)}
 
 
 class FT_SearchResult(bpy.types.PropertyGroup):
@@ -40,9 +41,17 @@ def run(context, tab):
     _set_index(sc, tab, -1)
 
 
+_quiet = {"on": False}
+
+
 def _set_index(sc, tab, value):
-    # set without triggering the pick callback
-    sc[f"ft_{tab}_index"] = value
+    # set without triggering the pick callback (Blender 5 keeps RNA properties apart from custom
+    # properties: writing sc["ft_…_index"] no longer changes the property)
+    _quiet["on"] = True
+    try:
+        setattr(sc, f"ft_{tab}_index", value)
+    finally:
+        _quiet["on"] = False
 
 
 def _query_update(tab):
@@ -51,12 +60,36 @@ def _query_update(tab):
 
 def _index_update(tab):
     def upd(self, context):
+        if _quiet["on"]:
+            return
         sc = context.scene
         i = getattr(sc, f"ft_{tab}_index")
         res = getattr(sc, f"ft_{tab}_results")
         if tab in _tabs and 0 <= i < len(res):
             _tabs[tab]["pick"](context, res[i].ident)
     return upd
+
+
+def results(context, tab):
+    """The current search results of a tab (the shown list)."""
+    return getattr(context.scene, f"ft_{tab}_results", [])
+
+
+def has_images(tab):
+    return bool(_tabs.get(tab, {}).get("image"))
+
+
+def image(context, tab, ident):
+    fn = _tabs.get(tab, {}).get("image")
+    return fn(context, ident) if fn else ("", "")
+
+
+def pick(context, tab, ident):
+    """Pick a result by ident (like clicking it in the list)."""
+    if tab in _tabs:
+        _tabs[tab]["pick"](context, ident)
+        res = results(context, tab)
+        _set_index(context.scene, tab, next((i for i, r in enumerate(res) if r.ident == ident), -1))
 
 
 def selected(context, tab):
@@ -68,8 +101,11 @@ def selected(context, tab):
 
 def draw(layout, context, tab, hint, rows=5):
     """Search field; while a query is typed, the matching results below it."""
+    from . import browse
     sc = context.scene
-    ui.draw_search(layout, sc, f"ft_{tab}_query", hint)
+    row = layout.row(align=True)
+    ui.draw_search(row, sc, f"ft_{tab}_query", hint)
+    browse.draw_button(row, tab)
     if not getattr(sc, f"ft_{tab}_query").strip():
         return
     res = getattr(sc, f"ft_{tab}_results")
@@ -80,8 +116,8 @@ def draw(layout, context, tab, hint, rows=5):
                          rows=min(rows, max(2, len(res))))
 
 
-def add_tab(tab, find, pick, description):
-    _tabs[tab] = {"find": find, "pick": pick}
+def add_tab(tab, find, pick, description, image=None):
+    _tabs[tab] = {"find": find, "pick": pick, "image": image}
     setattr(bpy.types.Scene, f"ft_{tab}_query",
             StringProperty(name="Search", description=description, update=_query_update(tab),
                            options={"SKIP_SAVE"}))

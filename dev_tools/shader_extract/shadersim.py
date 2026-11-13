@@ -31,7 +31,10 @@ def material_texture_registers(asm):
     view texture before them)."""
     regs = sorted(int(m) for m in re.findall(r"dcl_resource_texture\w*\s*\([^)]*\)\s*t(\d+)", asm))
     st = [int(m) for m in re.findall(r"dcl_resource_structured\s+t(\d+)", asm)]
-    return [r for r in regs if not st or r > max(st)]
+    # view textures fetched by pixel position (masked dither noise: ld only, never sampled) aren't material ones
+    sampled = {int(m) for m in re.findall(r"\bsample\w*\s*(?:\([^)]*\)\s*)*r\d+\.\w+,\s*[-\w.|]+,\s*t(\d+)", asm)}
+    view = {int(m) for m in re.findall(r"\bld\w*\s*(?:\([^)]*\)\s*)*r\d+\.\w+,\s*[-\w.|]+,\s*t(\d+)", asm)} - sampled
+    return [r for r in regs if (not st or r > max(st)) and r not in view]
 
 
 def material_cbuffer(asm):

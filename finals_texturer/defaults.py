@@ -94,7 +94,27 @@ GLITTER = "GLITTER"          # M_Skin_Glitter (glossy black, glitter at the edge
 WEAPON = "WEAPON"            # M_Weapon_Base_5Layers (weapon skins, layers + graphic)
 WEAPON_PRESET = "WEAPON_PRESET"  # M_WeaponPreset_CR+NOM (weapon skins with their own model)
 WEAPON_TEXT = "WEAPON_TEXT"  # M_WeaponText (logo / lettering decals on weapons)
+WEAPON_FRESNEL = "WEAPON_FRESNEL"  # M_LegendaryWeaponFresnel (Platinum rank, legendary fresnel skins)
+WEAPON_CRYSTAL = "WEAPON_CRYSTAL"  # M_Diamond_Weapon (Diamond / Ruby / Emerald ranks, crystal skins)
 WEAPON_FX = "WEAPON_FX"      # other weapon effect masters (diamond, fresnel, progression…), approximate
+OBJ_CANISTER = "OBJ_CANISTER"  # M_ATK_Canister_01 (arena barrels / canisters)
+OBJ_CASHOUT = "OBJ_CASHOUT"    # M_Cashout_CashBox_01, M_Cashout_TransferPoint_01 (cashbox, station, vault)
+OBJ_PROGRESS = "OBJ_PROGRESS"  # M_CashBoxEmissiveProgress, M_VaultEmissiveProgress (light strips)
+OBJ_TOTEM = "OBJ_TOTEM"        # M_CharacterTotem (death statues)
+OBJ_GLASS = "OBJ_GLASS"        # M_Glass_01 (prop glass)
+OBJ_ATK = "OBJ_ATK"            # M_4MaterialsByUVOffset (arena kit: jump pads, ziplines, ladders, dispenser, buttons)
+OBJ_DECAL = "OBJ_DECAL"        # M_Decals_Branding (+ _Projected): logo / label mesh decals
+OBJ_BUTTON = "OBJ_BUTTON"      # M_ATK_Button
+OBJ_PROPS = "OBJ_PROPS"        # M_Props_01 (props, e.g. the cannon)
+OBJ_CLOTH = "OBJ_CLOTH"        # M_Props_Cloth_01 (tarps, awnings)
+OBJ_FLAG = "OBJ_FLAG"          # M_Flag (flags, banners)
+OBJ_VEG = "OBJ_VEG"            # M_Vegetation_01 / _Grass (plants, leaves; alpha cut-out)
+OBJ_TRUNK = "OBJ_TRUNK"        # M_Nature_01_TreeTrunk (palm trunks)
+OBJ_TRIMS = "OBJ_TRIMS"        # M_Trims_01 (pallets, planks)
+OBJ_CABLE = "OBJ_CABLE"        # M_SplineThicken (cable bundles)
+OBJ_POM_DECAL = "OBJ_POM_DECAL"  # M_Decals_POM_Masked (mesh decals, roof trims)
+OBJ_2LAYER = "OBJ_2LAYER"      # M_2LayerBlend_01 (base layer only, approximate)
+OBJ_GRUNGE = "OBJ_GRUNGE"      # M_Decals_Grunge_Atlas_01 (dirt / leak mesh decals)
 HIDDEN = "HIDDEN"            # eye shadow shell / wet eye edge: screen-space effects, left invisible
 GENERIC = "GENERIC"          # anything else: guess from texture names
 
@@ -118,17 +138,43 @@ _KNOWN = [
     ("m_eyelashmaster", EYELASH, "M_EyelashMaster"),
     ("mi_headmaster_eyelashes", EYELASH, "M_EyelashMaster"),
     ("m_teeth", TEETH, "M_Teeth"),
+    ("m_legendaryweaponfresnel", WEAPON_FRESNEL, "M_LegendaryWeaponFresnel"),
+    ("m_diamond_weapon", WEAPON_CRYSTAL, "M_Diamond_Weapon"),
     ("m_weapon_base", WEAPON, "M_Weapon_Base_5Layers"),
     ("m_weaponpreset", WEAPON_PRESET, "M_WeaponPreset_CR+NOM"),
     ("m_weapontext", WEAPON_TEXT, "M_WeaponText"),
     ("mi_weapon_base", WEAPON, "M_Weapon_Base_5Layers"),
     ("m_hair_metahuman", HAIR, "M_Hair_Metahuman_01"),
     ("m_eyeocclusion", HIDDEN, "M_EyeOcclusion"),
+    ("m_atk_canister", OBJ_CANISTER, "M_ATK_Canister_01"),
+    ("m_cashout_cashbox", OBJ_CASHOUT, "M_Cashout_CashBox_01"),
+    ("m_cashout_transferpoint", OBJ_CASHOUT, "M_Cashout_TransferPoint_01"),
+    ("m_cashboxemissiveprogress", OBJ_PROGRESS, "M_CashBoxEmissiveProgress"),
+    ("m_vaultemissiveprogress", OBJ_PROGRESS, "M_VaultEmissiveProgress"),
+    ("m_charactertotem", OBJ_TOTEM, "M_CharacterTotem"),
+    ("m_4materialsbyuvoffset", OBJ_ATK, "M_4MaterialsByUVOffset"),
+    ("m_decals_branding", OBJ_DECAL, "M_Decals_Branding"),
+    ("m_atk_button", OBJ_BUTTON, "M_ATK_Button"),
+    ("m_props_cloth", OBJ_CLOTH, "M_Props_Cloth_01"),
+    ("m_flag", OBJ_FLAG, "M_Flag"),
+    ("m_props_01", OBJ_PROPS, "M_Props_01"),
+    ("m_vegetation_grass", OBJ_VEG, "M_Vegetation_Grass"),
+    ("m_vegetation_01", OBJ_VEG, "M_Vegetation_01"),
+    ("m_nature_01_treetrunk", OBJ_TRUNK, "M_Nature_01_TreeTrunk"),
+    ("m_trims_01", OBJ_TRIMS, "M_Trims_01"),
+    ("m_splinethicken", OBJ_CABLE, "M_SplineThicken"),
+    ("m_decals_pom_masked", OBJ_POM_DECAL, "M_Decals_POM_Masked"),
+    ("m_2layerblend_01", OBJ_2LAYER, "M_2LayerBlend_01"),
+    ("m_decals_grunge_atlas", OBJ_GRUNGE, "M_Decals_Grunge_Atlas_01"),
+    # normal-only translucent decal (dents on the dispenser): Blender can't add normals to another mesh
+    ("m_decals_pom_translucentnormal", HIDDEN, "M_Decals_POM_TranslucentNormal"),
     ("m_lacrimal_fluid", HIDDEN, "M_lacrimal_fluid"),
 ]
 
 # Exact names only (M_Skin_Glitter / _Space / _Hardsurface are different shaders).
-_EXACT = {"m_skin": SKIN, "m_face": FACE, "m_skin_glitter": GLITTER}
+_EXACT = {"m_skin": SKIN, "m_face": FACE, "m_skin_glitter": GLITTER, "m_glass_01": OBJ_GLASS,
+          # empty sticker slot (cashbox, cashout station): nothing to show
+          "m_weaponsticker_empty": HIDDEN}
 
 
 def master_from_chain(chain):

@@ -254,7 +254,7 @@ def status(root, skin_path, cls="M"):
         for t in params.textures.values():
             if not t or any(m in t for m in SHARED_MARKERS) or asset_name(t).lower() in defaults.NULL_TEXTURES:
                 continue
-            if not finder.find_texture(t) and not finder.array_slice_count(t):
+            if not finder.has_texture(t) and not finder.array_slice_count(t):
                 textures.append(_folder(t))
     groups = ui.split_folders(meshes, textures, flat)
     if not parts and os.path.basename(skin_path).startswith("DA_"):
@@ -314,6 +314,21 @@ def _find(context, query):
             ready = library_ui._status(root, lib, e)[0]
             out.append((f"item:{idx}", library.display_name(e), detail, ready, "MATCLOTH"))
     return out
+
+
+def _image(context, ident):
+    """(local PNG, game path) of a search result's store image (browse.py)."""
+    lib = library_ui._get_lib(context)
+    try:
+        e = lib["entries"][int(ident.split(":", 1)[1])] if lib else None
+    except (ValueError, IndexError):
+        e = None
+    img = (e or {}).get("image") or ""
+    if not img:
+        return "", ""
+    root = _root(context)
+    local = os.path.join(root, *img.split("/")) + ".png" if root else ""
+    return local, img
 
 
 def _pick(context, ident):
@@ -523,7 +538,7 @@ def register(root_getter, report):
     S.ft_cloth_whole = BoolProperty(name="Import whole skin", default=True,
                                     description="Also import the other meshes the skin uses (pins, hoods, …)")
     S.ft_cloth_outfit = StringProperty(options={"SKIP_SAVE"})
-    search.add_tab("cloth", _find, _pick, "In-game, skin or file name; typos are OK")
+    search.add_tab("cloth", _find, _pick, "In-game, skin or file name; typos are OK", image=_image)
 
 
 def unregister():

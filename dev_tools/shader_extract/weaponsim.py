@@ -74,7 +74,9 @@ class Evaluator:
     def uniform_buffer(self, mp):
         params = self._param_values(mp)
         data = base64.b64decode(self.layout["UniformPreshaderData"]["Data"])
-        buf = np.zeros(self.layout["UniformPreshaderBufferSize"] * 4, np.float32)
+        # some fields (static-switch values kept for the VS) sit past UniformPreshaderBufferSize
+        last = max((f["BufferOffset"] + 4 for f in self.layout["UniformPreshaderFields"]), default=0)
+        buf = np.zeros(max(self.layout["UniformPreshaderBufferSize"] * 4, (last + 3) // 4 * 4), np.float32)
         for h in self.layout["UniformPreshaders"]:
             code = data[h["OpcodeOffset"]:h["OpcodeOffset"] + h["OpcodeSize"]]
             res = run_preshader(code, params, lambda idx: self._texture_size(mp, idx))
@@ -111,6 +113,12 @@ class Evaluator:
             return None
         if object_path in self._tex_cache:
             return self._tex_cache[object_path]
+        if ("DestructionCracks" in object_path or "SDFMaskTexture_02" in object_path) and \
+                os.environ.get("FT_SIM_UNDAMAGED", "1") == "1":
+            # the world-space destruction volume: 1 = no damage (the default look; 0 would mean
+            # broken everywhere and switches on the soot / crack layers)
+            tex = self._tex_cache[object_path] = Texture(np.ones((2, 2, 2, 4), np.float32))
+            return tex
         tex = None
         png = self.finder.find_texture(object_path)
         if png:
@@ -151,7 +159,45 @@ class Evaluator:
         return {i: self._load(p) for i, (_n, p) in enumerate(entries)}, [n for n, _ in entries]
 
     # ── run ──────────────────────────────────────────────────────────────────
-    def run(self, mi_json, uv0, uv1, uv2=None, normal=None):
+    def _uv1_straight(self):
+        """True if every vertex shader passes UV channel 2 as (u, v) with a plain move (static meshes:
+        'mov o2.zw, rN.xxxy' - props, cashout objects). Skinned meshes (clothing, characters) write it
+        another way and store (v, u); weapons mix both: those keep the (v, u) layout verified earlier."""
+        import glob
+        import re
+        order = "xyzw"
+        seen = set()
+        for vs in glob.glob(os.path.join(self.dir, "VS_*.asm")):
+            text = open(vs, encoding="utf-8", errors="replace").read()
+            out = text.split("// Output signature:", 1)[-1]
+            m = re.search(r"^//\s+TEXCOORD\s+0\s+\w+\s+(\d+)\s", out, re.M)
+            if not m:
+                continue
+            moves = re.findall(r"mov o%s\.zw, (r\d+\.\w{4}|l\([^)]*\))" % m.group(1), text)
+            if not moves:
+                seen.add("other")
+            for mv in moves:
+                if mv.startswith("l("):
+                    continue
+                sw = mv.split(".")[1]
+                seen.add("straight" if order.index(sw[2]) < order.index(sw[3]) else "swapped")
+        return seen == {"straight"}
+
+    def _signature(self):
+        """{(semantic, index): "vN"} from the base pass's input signature comment."""
+        import re
+        sig = {}
+        path = os.path.join(self.dir, "base_pass.asm")
+        try:
+            text = open(path, encoding="utf-8", errors="replace").read()
+        except OSError:
+            return sig
+        block = text.split("// Input signature:", 1)[-1].split("// Output signature:", 1)[0]
+        for m in re.finditer(r"^//\s+(\w+)\s+(\d+)\s+\w+\s+(\d+)\s", block, re.M):
+            sig[(m.group(1), int(m.group(2)))] = f"v{m.group(3)}"
+        return sig
+
+    def run(self, mi_json, uv0, uv1, uv2=None, normal=None, vcol=None):
         mp = ue.resolve_material(self.finder, json_path=mi_json, log=self.log)
         n = len(uv0)
         cb2 = self.uniform_buffer(mp)
@@ -159,6 +205,7 @@ class Evaluator:
         cb0[47] = (0, 0, 0, 1)
         cb0[160] = (0, 1, 0, 1)            # roughness / AO overrides: identity
         cb0[156] = (0, 0, 1, 0)
+        cb0[162] = (0, 0, 0, 1)            # view: front-face sign (two-sided materials' back side)
         cb0[319] = (0, 0, 1e9, 0)
         # camera straight above every texel (surface normal +Z, world position 0): view-dependent terms
         # (fresnel masks) are evaluated head-on, the case a static Blender value should match
@@ -167,19 +214,45 @@ class Evaluator:
         tex, names = self.textures(mp)
         g = tex.get(names.index("Gradient")) if "Gradient" in names else None
         row = cb2[0][0] / g.img.shape[-3] if g is not None else 0.5
+        sig = self._signature()
         inputs = {
             "v0": [np.ones(n), np.zeros(n), np.zeros(n)],                 # tangent
             "v1": [np.zeros(n), np.zeros(n), np.ones(n), np.ones(n)],     # normal, tangent sign
             # the vertex shader passes UV1 as (v, u); v3 = UV2 (u, v), -, gradient row (custom UV:
             # (Gradient Y Sample Index + 0.5) / height of the "Gradient" texture)
-            "v2": [uv0[:, 0], uv0[:, 1], uv1[:, 1], uv1[:, 0]],
+            "v2": ([uv0[:, 0], uv0[:, 1], uv1[:, 0], uv1[:, 1]] if self._uv1_straight()
+                   else [uv0[:, 0], uv0[:, 1], uv1[:, 1], uv1[:, 0]]),
             "v3": [(uv2 if uv2 is not None else uv1)[:, 0], (uv2 if uv2 is not None else uv1)[:, 1], np.zeros(n),
                    np.full(n, row)],
             "v4": [np.zeros(n)] * 3,
             "v5": [np.arange(n) % 1024 + 0.5, np.arange(n) // 1024 + 0.5, np.full(n, 0.5)],
         }
+        if sig and sig.get(("TEXCOORD", 0)) not in (None, "v2"):
+            # other vertex factories / material inputs move the registers: wire them by semantic
+            uv2s = uv2 if uv2 is not None else uv1
+            by_sem = {
+                ("TEXCOORD", 10): [np.ones(n), np.zeros(n), np.zeros(n), np.zeros(n)],
+                ("TEXCOORD", 11): [np.zeros(n), np.zeros(n), np.ones(n), np.ones(n)],
+                ("COLOR", 0): [vcol[:, i] for i in range(4)] if vcol is not None else [np.ones(n)] * 4,
+                ("TEXCOORD", 0): ([uv0[:, 0], uv0[:, 1], uv1[:, 0], uv1[:, 1]] if self._uv1_straight()
+                                  else [uv0[:, 0], uv0[:, 1], uv1[:, 1], uv1[:, 0]]),
+                ("TEXCOORD", 1): [uv2s[:, 0], uv2s[:, 1], np.zeros(n), np.full(n, row)],
+                ("PRIMITIVE_ID", 0): [np.zeros(n)],
+                ("TEXCOORD", 9): [np.zeros(n)] * 3,
+                ("SV_Position", 0): [np.arange(n) % 1024 + 0.5, np.arange(n) // 1024 + 0.5, np.full(n, 0.5), np.ones(n)],
+                ("SV_IsFrontFace", 0): [np.full(n, 0xFFFFFFFF, np.uint32).view(np.float32)],     # front faces
+            }
+            inputs = {reg: by_sem[sem] for sem, reg in sig.items() if sem in by_sem}
+        if sig and ("COLOR", 0) in sig and vcol is not None:
+            inputs[sig[("COLOR", 0)]] = [vcol[:, i] for i in range(4)]
+        if sig and ("SV_IsFrontFace", 0) in sig:
+            inputs[sig[("SV_IsFrontFace", 0)]] = [np.full(n, 0xFFFFFFFF, np.uint32).view(np.float32)]
         cbs = {k: np.zeros((64, 4), np.float32) for k in range(1, self.mat_cb)}
         cbs[0] = cb0
+        # material parameter collections the masters read (cb2 when the material buffer is later):
+        # sponsor colour table width (MPC row 6 z) = 13 sponsors, weather / emissive collection 1
+        if self.mat_cb > 2 and os.environ.get("FT_SIM_MPC", "1") == "1":
+            cbs[2][6] = (0.0, 0.0, 13.0, 0.0)
         cbs[self.mat_cb] = cb2
         out = self.shader.run(n, inputs, cbs, tex)
         o2, o3, o4 = out.get("o2"), out.get("o3"), out.get("o4")
@@ -241,6 +314,10 @@ def run_preshader(code, params, texture_size=None):
         elif op == 0x14:      # Dot
             b, a = stack.pop(), stack.pop()
             stack.append([sum(x * y for x, y in zip(a, b))])
+        elif op == 0x19:      # Normalize
+            v = stack.pop()
+            n = math.sqrt(sum(x * x for x in v)) or 1.0
+            stack.append([x / n for x in v])
         elif op == 0x18:      # Length
             v = stack.pop()
             stack.append([math.sqrt(sum(x * x for x in v))])

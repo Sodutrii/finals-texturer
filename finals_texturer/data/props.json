@@ -1,0 +1,2645 @@
+{
+"version": 1,
+"props": [
+{
+"category": "Props: Arena",
+"name": "Are Mammoth Rib Cage 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_02/Are_Mammoth_01/BP_FSM_Are_Mammoth_RibCage_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Are Mammoth Skull 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_02/Are_Mammoth_01/BP_FSM_Are_Mammoth_Skull_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Are Rock 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_02/Are_Rock_01/BP_FSM_Are_Rock_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Are Sofa 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_02/Are_Sofa_01/BP_FSM_Are_Sofa_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Bucket 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_04/Are4_Bucket_01/BP_Are4_Bucket_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Arena",
+"name": "Bucket 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_04/Are4_Bucket_01/BP_Are4_Bucket_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Arena",
+"name": "Cargo Container B",
+"path": "Discovery/Content/Discovery/Environment/Props/ArenaToolKit/ATK_CargoContainer_02/BP_ATK_CargoContainer_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Fence Barricade 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/ArenaToolKit/ATK_FenceBarricade_01/BP_ATK_FenceBarricade_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Arena",
+"name": "Fence Barricade 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/ArenaToolKit/ATK_FenceBarricade_01/BP_ATK_FenceBarricade_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Arena",
+"name": "Fire Extinguisher 01",
+"path": "Discovery/Content/Discovery/Environment/Props/ArenaToolKit/ATK_FireExtinguisher_01/BP_ATK_FireExtinguisher_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Arena",
+"name": "Flag Hanging 01",
+"path": "Discovery/Content/Discovery/Environment/Props/ArenaToolKit/ATK_FlagHanging_01/BP_FlagHanging_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Lamp 01",
+"path": "Discovery/Content/Discovery/Environment/Props/ArenaToolKit/ATK_Lamp_01/BP_ATK_Lamp_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Arena",
+"name": "Plank 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/ArenaToolKit/ATK_Plank_01/BP_FSM_ATK_Plank_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Plank 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/ArenaToolKit/ATK_Plank_02/BP_FSM_ATK_Plank_02_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Sign 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_04/Are4_Sign_02/BP_Are4_Sign_02_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Statue Vaiiya 02 Wall A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_04/Are4_StatueVaiiya_02/BP_Are4_StatueVaiiya_02_Wall_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Arena",
+"name": "Stool 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_04/Are4_Stool_01/BP_Are4_Stool_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Arena",
+"name": "Table 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_04/Are4_Table_01/BP_Are4_Table_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Arena",
+"name": "Table 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_04/Are4_Table_01/BP_Are4_Table_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Arena",
+"name": "Table 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Arena_04/Are4_Table_02/BP_Are4_Table_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Balustrade 01 X 200 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Balustrade_01/BP_FSM_Ber_Balustrade_01_x200_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Bernal",
+"name": "Balustrade 01 X 400 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Balustrade_01/BP_FSM_Ber_Balustrade_01_x400_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Bernal",
+"name": "Bench Wood 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_BenchWood_01/BP_Ber_BenchWood_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Bucket 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Bucket_01/BP_Ber_Bucket_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Chair 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Chair_01/BP_Ber_Chair_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Planter 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Planter_01/BP_FSM_Ber_Planter_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Bernal",
+"name": "Planter 02",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Planter_02/BP_FSM_Ber_Planter_02",
+"kind": "breakable"
+},
+{
+"category": "Props: Bernal",
+"name": "Plastic Crates 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_PlasticCrates_01/BP_Ber_PlasticCrates_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_01_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot 01 F Canary Date Palm A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_01_F_CanaryDatePalm_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot 01 F Schefflera Arboricola A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_01_F_ScheffleraArboricola_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot 01 F Schefflera Arboricola B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_01_F_ScheffleraArboricola_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot 01 G",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_01_G",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot 01 I",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_01_I",
+"kind": "breakable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Cactus 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_Cactus_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Cactus 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_Cactus_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Cactus 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_Cactus_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Cactus 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_Cactus_01_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Elephant Ear 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_ElephantEar_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Elephant Ear 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_ElephantEar_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Grass 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_Grass_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Hoya 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_Hoya_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Hoya 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_Hoya_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Hoya 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_Hoya_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Hoya 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_Hoya_01_D",
+"kind": "breakable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Schefflera Arboricola 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_ScheffleraArboricola_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Schefflera Arboricola 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_ScheffleraArboricola_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Sword Fern 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_SwordFern_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Pot Sword Fern 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_Pot_01/BP_Ber_Pot_SwordFern_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Sign Standing 02",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_SignStanding_02/BP_SignStanding_02",
+"kind": "liftable"
+},
+{
+"category": "Props: Bernal",
+"name": "Solar Panel 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_SolarPanel_01/BP_FSM_Ber_SolarPanel_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Bernal",
+"name": "Solar Panel 02",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_SolarPanel_01/BP_FSM_Ber_SolarPanel_02",
+"kind": "breakable"
+},
+{
+"category": "Props: Bernal",
+"name": "Water Tank Base 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_WaterTank_01/BP_FSM_Ber_WaterTank_Base_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Bernal",
+"name": "Wood Pole 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Bernal/Ber_WoodPole_01/BP_Ber_WoodPole_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Buildings",
+"name": "Bin Wheeled 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Buildings/BinWheeled_01/BP_BinWheeled_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Buildings",
+"name": "Bin Wheeled 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Buildings/BinWheeled_01/BP_BinWheeled_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Buildings",
+"name": "Camera Surveillance 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Buildings/CameraSurveillance_01/BP_CameraSurveillance_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Buildings",
+"name": "Camera Surveillance 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Buildings/CameraSurveillance_01/BP_CameraSurveillance_01_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Buildings",
+"name": "Camera Surveillance 02 Hanging A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Buildings/CameraSurveillance_02/BP_CameraSurveillance_02_Hanging_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Buildings",
+"name": "Vent Hanging 01 Ceiling",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Buildings/VentHanging_01/BP_VentHanging_01_Ceiling",
+"kind": "breakable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Anvil 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Anvil_01/BP_Fan_Anvil_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Anvil Log 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Anvil_01/BP_Fan_Anvil_Log_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Barrel 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Barrel_01/BP_Fan_Barrel_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Barrel 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Barrel_02/BP_Fan_Barrel_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Barrel 02 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Barrel_02/BP_Fan_Barrel_02_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Barrel Lid 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Barrel_02/BP_Fan_Barrel_Lid_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Basket 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Basket_01/BP_Fan_Basket_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Basket 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Basket_01/BP_Fan_Basket_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Basket 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Basket_01/BP_Fan_Basket_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Bench 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_TableBench_01/BP_Bench_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Haywagon Wheel 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Haywagon_01/BP_Fan_Haywagon_Wheel_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Haywagon Wheel Attached 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Haywagon_01/BP_Fan_Haywagon_WheelAttached_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Person Wagon Wheel Attached 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_PersonWagon_01/BP_Fan_PersonWagon_WheelAttached_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Pillory 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Pillory_01/BP_Fan_Pillory_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Fantasy",
+"name": "Torch 01 Off",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Fantasy/Fan_Torch_01/BP_Fan_Torch_01_Off",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Bar Stool 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/BarStool_01/BP_BarStool_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Bench Interior 03",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/BenchInterior_03/BP_BenchInterior_03",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Bench Interior 04 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/BenchInterior_04/BP_BenchInterior_04_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Bin 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Bin_01/BP_Bin_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Bin Office 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/BinOffice_01/BP_BinOffice_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Cafe 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairCafe_01/BP_ChairCafe_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Cafe 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairCafe_02/BP_ChairCafe_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Cafe 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairCafe_03/BP_ChairCafe_03_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Cafe 04 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairCafe_04/BP_ChairCafe_04_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Cafe 05 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairCafe_05/BP_ChairCafe_05_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Cafe 06",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairCafe_06/BP_ChairCafe_06",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Lounge 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairLounge_01/BP_ChairLounge_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Lounge 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairLounge_02/BP_ChairLounge_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Lounge 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairLounge_03/BP_ChairLounge_03_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Metal 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairMetal_01/BP_ChairMetal_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Metal 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairMetal_01/BP_ChairMetal_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Metal 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairMetal_01/BP_ChairMetal_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Office 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairOffice_01/BP_ChairOffice_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Office 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairOffice_02/BP_ChairOffice_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Office 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairOffice_03/BP_ChairOffice_03_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Office 04 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairOffice_04/BP_ChairOffice_04_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Plastic 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairPlastic_01/BP_ChairPlastic_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Plastic 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairPlastic_01/BP_ChairPlastic_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Plastic 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairPlastic_02/BP_ChairPlastic_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Chair Plastic 02 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/ChairPlastic_02/BP_ChairPlastic_02_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Curtain 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Curtain_02/BP_Curtain_02_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Curtain 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Curtain_03/BP_Curtain_03_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Curtain 03 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Curtain_03/BP_Curtain_03_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_01/BP_Monitor_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_01/BP_Monitor_01_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_01/BP_Monitor_01_E",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_03/BP_Monitor_03_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 03 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_03/BP_Monitor_03_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 03 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_03/BP_Monitor_03_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 03 Cluster A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_03/BP_FSM_Monitor_03_Cluster_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 03 Cluster B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_03/BP_FSM_Monitor_03_Cluster_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 03 Cluster C",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_03/BP_FSM_Monitor_03_Cluster_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Monitor 03 Tower A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Monitor_03/BP_FSM_Monitor_03_Tower_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Furniture",
+"name": "Stool 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Stool_01/BP_Stool_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Stool 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/Stool_02/BP_Stool_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Table Cafe 04 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/TableCafe_04/BP_TableCafe_04_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Table Cafe 05",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/TableCafe_05/BP_TableCafe_05",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Table Office 03 Cabinet",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/TableOffice_03/BP_TableOffice_03_Cabinet",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Table Plastic 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/TablePlastic_01/BP_TablePlastic_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Table Plastic 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/TablePlastic_01/BP_TablePlastic_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Furniture",
+"name": "Table Plastic 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Furniture/TablePlastic_01/BP_TablePlastic_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Bell 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Bell_01/BP_Hon_Bell_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Billboard 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Billboard_01/BP_FSM_Hon_Billboard_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Bin 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Bin_01/BP_Hon_Bin_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Bin 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Bin_03/BP_Hon_Bin_03_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Bin 04 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Bin_04/BP_Hon_Bin_04_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Bollard 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Bollard_01/BP_Hon_Bollard_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Cloth 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Cloth_01/BP_Hon_Cloth_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Crate Styrofoam 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_CrateStyrofoam_01/BP_Hon_CrateStyrofoam_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Drum 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Drum_01/BP_Hon_Drum_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Drum 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Drum_01/BP_Hon_Drum_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Fence Barricade 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_FenceBarricade_01/BP_Hon_FenceBarricade_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Monitor 02 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Monitor_02/BP_FSM_Monitor_02_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Planter 01 X 400 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Planter_01/BP_FSM_Hon_Planter_01_x400_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Planter 01 X 400 C 45 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Planter_01/BP_FSM_Hon_Planter_01_x400_C45_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Planter 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Planter_03/BP_FSM_Hon_Planter_03_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Planter 03 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Planter_03/BP_FSM_Hon_Planter_03_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_01/BP_Hon_Pot_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 01 Bonsai 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_01/BP_Hon_Pot_01_Bonsai_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 01 Bonsai 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_01/BP_Hon_Pot_01_Bonsai_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 01 Bonsai 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_01/BP_Hon_Pot_01_Bonsai_01_E",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 01 Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_01/BP_Hon_Pot_01_Bush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 01 Dwarf Umbrella Tree A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_01/BP_Hon_Pot_01_DwarfUmbrellaTree_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 01 Dwarf Umbrella Tree B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_01/BP_Hon_Pot_01_DwarfUmbrellaTree_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 01 Elefant Ear 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_01/BP_Hon_Pot_01_ElefantEar_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 01 Fan Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_01/BP_Hon_Pot_01_FanBush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 02",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_02/BP_Hon_Pot_02",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 02 Dwarf Umbrella Tree A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_02/BP_Hon_Pot_02_DwarfUmbrellaTree_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 02 Dwarf Umbrella Tree B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_02/BP_Hon_Pot_02_DwarfUmbrellaTree_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 02 Fan Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_02/BP_Hon_Pot_02_FanBush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 03 Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_03/BP_Hon_Pot_03_Bush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 03 Fan Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_03/BP_Hon_Pot_03_FanBush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 03 Fan Bush B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_03/BP_Hon_Pot_03_FanBush_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 05 Bonsai 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_05/BP_Hon_Pot_05_Bonsai_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 05 Bonsai 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_05/BP_Hon_Pot_05_Bonsai_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 05 Bonsai 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_05/BP_Hon_Pot_05_Bonsai_01_E",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 05 Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_05/BP_Hon_Pot_05_Bush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 05 Dwarf Umbrella Tree A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_05/BP_Hon_Pot_05_DwarfUmbrellaTree_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 05 Dwarf Umbrella Tree B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_05/BP_Hon_Pot_05_DwarfUmbrellaTree_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 05 Elefant Ear A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_05/BP_Hon_Pot_05_ElefantEar_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 05 Fan Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_05/BP_Hon_Pot_05_FanBush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 06 Bonsai 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_06/BP_Hon_Pot_06_Bonsai_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 06 Bonsai 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_06/BP_Hon_Pot_06_Bonsai_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 06 Bonsai 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_06/BP_Hon_Pot_06_Bonsai_01_E",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 06 Dwarf Umbrella Tree A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_06/BP_Hon_Pot_06_DwarfUmbrellaTree_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 06 Dwarf Umbrella Tree B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_06/BP_Hon_Pot_06_DwarfUmbrellaTree_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 06 Elefant Ear A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_06/BP_Hon_Pot_06_ElefantEar_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 06 Fan Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_06/BP_Hon_Pot_06_FanBush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 07 Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_07/BP_Hon_Pot_07_Bush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 07 Dwarf Umbrella Tree A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_07/BP_Hon_Pot_07_DwarfUmbrellaTree_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 07 Dwarf Umbrella Tree B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_07/BP_Hon_Pot_07_DwarfUmbrellaTree_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 07 Elefant Ear A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_07/BP_Hon_Pot_07_ElefantEar_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot 07 Fan Bush A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Pot_07/BP_Hon_Pot_07_FanBush_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot Set 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_PotSet_01/BP_Hon_PotSet_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot Set 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_PotSet_01/BP_Hon_PotSet_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Pot Set 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_PotSet_01/BP_Hon_PotSet_01_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "SM Hon Awning 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Awning_01/BP_SM_Hon_Awning_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Statue Lion 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_StatueLion_01/BP_FSM_Hon_StatueLion_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Statue Lion 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_StatueLion_02/BP_FSM_Hon_StatueLion_02_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Statue Lion 02 Base A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_StatueLion_02/BP_FSM_Hon_StatueLion_02_Base_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Temple Bowls 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_TempleBowls_01/BP_Hon_TempleBowls_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Temple Bowls 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_TempleBowls_01/BP_Hon_TempleBowls_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Temple Bowls 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_TempleBowls_01/BP_Hon_TempleBowls_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Temple Chair 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_TempleChair_01/BP_Hon_TempleChair_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Temple Chair 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_TempleChair_01/BP_Hon_TempleChair_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Temple Chair 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_TempleChair_01/BP_Hon_TempleChair_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Water Pump 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_Waterpump_01/BP_Hon_WaterPump_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Hong Kong",
+"name": "Wet Floor Sign 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/HongKong/Hon_WetFloorSign_01/BP_Hon_WetFloorSign_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Industrial",
+"name": "Aircon Unit 05 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Industrial/AirconUnit_05/BP_AirconUnit_05_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Industrial",
+"name": "Aircon Unit 05 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Industrial/AirconUnit_05/BP_AirconUnit_05_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Industrial",
+"name": "Concrete Beam 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Industrial/ConcreteBeam_01/BP_FSM_ConcreteBeam_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Industrial",
+"name": "Construction Cloth 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Industrial/ConstructionCloth_01/BP_ConstructionCloth_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Industrial",
+"name": "Construction Crane 02 Base",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Industrial/ConstructionCrane_02/BP_ConstructionCrane_02_Base",
+"kind": "breakable"
+},
+{
+"category": "Props: Industrial",
+"name": "Construction Crane 02 Top",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Industrial/ConstructionCrane_02/BP_ConstructionCrane_02_Top",
+"kind": "breakable"
+},
+{
+"category": "Props: Industrial",
+"name": "Construction Lamp 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Industrial/ConstructionLamp_01/BP_ConstructionLamp_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Industrial",
+"name": "Generator Small 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Industrial/GeneratorSmall_01/BP_GeneratorSmall_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Industrial",
+"name": "Sprinkler System 01 Alarm B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Industrial/SprinklerSystem_01/BP_SprinklerSystem_01_Alarm_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Cart Computer 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_CartComputer_02/BP_Kor_CartComputer_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Korea",
+"name": "Counter Hospital 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_CounterHospital_01/BP_FSM_Kor_CounterHospital_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Hospital 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignHospital_01/BP_Kor_SignHospital_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Hospital 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignHospital_01/BP_Kor_SignHospital_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Hospital 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignHospital_01/BP_Kor_SignHospital_01_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Hospital 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignHospital_01/BP_Kor_SignHospital_01_E",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Hospital 01 F",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignHospital_01/BP_Kor_SignHospital_01_F",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Mall 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignMall_01/BP_Kor_SignMall_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Mall 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignMall_01/BP_Kor_SignMall_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Mall 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignMall_01/BP_Kor_SignMall_01_D",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Office 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignOffice_01/BP_Kor_SignOffice_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Sign Office 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_SignOffice_01/BP_Kor_SignOffice_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Korea",
+"name": "Trash Can 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Korea/Kor_TrashCan_01/BP_Kor_TrashCan_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Archery Target 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_ArcheryTarget_01/BP_Kyo_ArcheryTarget_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Art Table 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_ArtTable_01/BP_Kyo_ArtTable_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Banners 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Banners_01/BP_Kyo_Banners_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Banners 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Banners_01/BP_Kyo_Banners_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Banners 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Banners_01/BP_Kyo_Banners_01_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Banners 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Banners_01/BP_Kyo_Banners_01_E",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Barrel Food 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_BarrelFood_01/BP_Kyo_BarrelFood_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Barrel Food 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_BarrelFood_01/BP_Kyo_BarrelFood_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Barrel Food 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_BarrelFood_01/BP_Kyo_BarrelFood_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Barrel Food 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_BarrelFood_01/BP_Kyo_BarrelFood_01_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Basket 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Basket_01/BP_Kyo_Basket_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Basket 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Basket_01/BP_Kyo_Basket_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Bell Temple 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_BellTemple_01/BP_FSM_Kyo_BellTemple_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Bell Temple 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_BellTemple_01/BP_FSM_Kyo_BellTemple_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Bell Temple 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_BellTemple_01/BP_FSM_Kyo_BellTemple_01_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Bell Temple 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_BellTemple_01/BP_FSM_Kyo_BellTemple_01_D",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Bucket 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Bucket_01/BP_Kyo_Bucket_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Bucket 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Bucket_01/BP_Kyo_Bucket_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Bucket 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Bucket_01/BP_Kyo_Bucket_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Crate 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Crate_01/BP_Kyo_Crate_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Crate 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Crate_01/BP_Kyo_Crate_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Cup Board 01 X 165 Side A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Cupboard_01/BP_Kyo_CupBoard_01_x165_Side_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Curtain Wicker 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_CurtainWicker_01/BP_Kyo_CurtainWicker_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Curtain Wicker 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_CurtainWicker_01/BP_Kyo_CurtainWicker_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Curtain Wicker 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_CurtainWicker_01/BP_Kyo_CurtainWicker_01_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Dining Set 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_DiningSet_01/BP_Kyo_DiningSet_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Dining Set 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_DiningSet_01/BP_Kyo_DiningSet_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Dining Set 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_DiningSet_01/BP_Kyo_DiningSet_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Drawer 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Drawer_01/BP_Kyo_Drawer_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Drawer 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Drawer_01/BP_Kyo_Drawer_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Flag 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Flag_01/BP_Kyo_Flag_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Flag 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Flag_01/BP_Kyo_Flag_01_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Floormat 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Floormat_01/BP_Kyo_Floormat_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Fruit Drying 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_FruitDrying_01/BP_Kyo_FruitDrying_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Fruit Drying 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_FruitDrying_01/BP_Kyo_FruitDrying_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Hitching Post 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_HitchingPost_01/BP_Kyo_HitchingPost_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Incense Burner 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_IncenseBurner_01/BP_Kyo_IncenseBurner_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Kettle 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Kettle_01/BP_Kyo_Kettle_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Pot Set 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_PotSet_01/BP_Kyo_PotSet_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Pot Set 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_PotSet_01/BP_Kyo_PotSet_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Pot Set 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_PotSet_01/BP_Kyo_PotSet_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Pot Set 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_PotSet_02/BP_Kyo_PotSet_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Pot Set 02 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_PotSet_02/BP_Kyo_PotSet_02_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Pot Set 02 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_PotSet_02/BP_Kyo_PotSet_02_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Pot Set 02 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_PotSet_02/BP_Kyo_PotSet_02_E",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Rice Bales 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_RiceBales_01/BP_Kyo_RiceBales_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Rope 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Rope_01/BP_Kyo_Rope_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Saddle 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Saddle_01/BP_Kyo_Saddle_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Statue Base 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_StatueBase_01/BP_Kyo_StatueBase_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Statue Base 02",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_StatueBase_02/BP_Kyo_StatueBase_02",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Statue Lion 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_StatueLion_01/BP_Kyo_StatueLion_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Statue Lion 02",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_StatueLion_02/BP_Kyo_StatueLion_02",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Statue Lion 03",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_StatueLion_03/BP_Kyo_StatueLion_03",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Statue Lion 04",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_StatueLion_04/BP_Kyo_StatueLion_04",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Stool 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Stool_01/BP_Kyo_Stool_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Torii 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_Torii_01/BP_FSM_Kyo_Torii_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Kyoto",
+"name": "Training Dummy 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Kyoto/Kyo_TrainingDummy_02/BP_Kyo_TrainingDummy_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "02 OPZ Bar Base 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas_02/LasVegas_02_OPZ_BarBase_01/BP_FSM_Las_02_OPZ_BarBase_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "02 OPZ Bar Tap 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas_02/Las_02_OPZ_BarTap_01/BP_Las_02_OPZ_BarTap_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ART Bar Back Wall 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ART_Bar_01/BP_FSM_Las_ART_Bar_BackWall_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ART Flamingo 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ART_Flamingo_01/BP_Las_ART_Flamingo_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ART Planter 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ART_Planter_01/BP_FSM_Las_ART_Planter_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ART Planter 01 X 100 End A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ART_Planter_01/BP_FSM_Las_ART_Planter_01_x100_End_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ART Planter 01 X 200 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ART_Planter_01/BP_FSM_Las_ART_Planter_01_x200_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Alley Roof 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_AlleyRoof_01/BP_FSM_Las_AlleyRoof_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Alley Roof 01 Pole A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_AlleyRoof_01/BP_FSM_Las_AlleyRoof_01_Pole_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bar Ceiling Rack 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_BarCeilingRack_01/BP_Las_BarCeilingRack_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bin 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/LAS_Bin_01/BP_Las_Bin_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bin 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/LAS_Bin_02/BP_Las_Bin_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bin 02 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/LAS_Bin_02/BP_Las_Bin_02_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bollard 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_Bollard_02/BP_Las_Bollard_02_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bollard 02 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_Bollard_02/BP_Las_Bollard_02_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bollard 02 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_Bollard_02/BP_Las_Bollard_02_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bollard 02 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_Bollard_02/BP_Las_Bollard_02_D",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bollard 02 Rope A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_Bollard_02/BP_Las_Bollard_02_Rope_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bollard 02 Rope B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_Bollard_02/BP_Las_Bollard_02_Rope_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Bollard 02 Rope C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_Bollard_02/BP_Las_Bollard_02_Rope_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Chair Casino 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ChairCasino_01/BP_Las_ChairCasino_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Chair Casino 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ChairCasino_02/BP_Las_ChairCasino_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Chair Casino 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ChairCasino_03/BP_Las_ChairCasino_03_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Engimo Sign Lamp 03",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas_02/LasVegas_02_Engimo_SignLamp_03/BP_LasVegas_02_Engimo_SignLamp_03",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ICE Bar 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ICE_Bar_01/BP_FSM_Las_ICE_Bar_01_D",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ICE Bar 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ICE_Bar_01/BP_FSM_Las_ICE_Bar_01_E",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ICE Bar 01 F",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ICE_Bar_01/BP_FSM_Las_ICE_Bar_01_F",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ICE Bar Frame 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ICE_Bar_01/BP_FSM_Las_ICE_BarFrame_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ICE Feather Tree 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ICE_FeatherTree_01/BP_Las_ICE_FeatherTree_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ICE Globe 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ICE_Globe_01/BP_FSM_Las_ICE_Globe_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "ICE Globe 01 Foundation",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ICE_Globe_01/BP_FSM_Las_ICE_Globe_01_Foundation",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Kiosk 03",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_Kiosk_03/BP_FSM_Las_Kiosk_03",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Metal Stairs 01 X 200",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_MetalStairs_01/BP_FSM_MetalStairs_01_x200",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Metal Stairs 01 X 200 Y 400",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_MetalStairs_01/BP_FSM_MetalStairs_01_x200_y400",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Metal Stairs 01 X 400",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_MetalStairs_01/BP_FSM_MetalStairs_01_x400",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Metal Stairs 02",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_MetalStairs_01/BP_FSM_MetalStairs_02",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Metal Stairs End Step 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_MetalStairs_01/BP_FSM_MetalStairs_EndStep_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Metal Stairs Pole 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_MetalStairs_01/BP_FSM_MetalStairs_Pole_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Parking Clearance 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ParkingClearance_01/BP_Las_ParkingClearance_01",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Parking Valet 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_ParkingValet_01/BP_Las_ParkingValet_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Pillar 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_Pillar_01/BP_FSM_Las_Pillar_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Road Cone 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_RoadCone_01/BP_Las_RoadCone_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Sign Road Closed 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_SignRoadClosed_01/BP_Las_SignRoadClosed_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Sign Road Closed 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_SignRoadClosed_01/BP_Las_SignRoadClosed_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Sign Standing 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_SignStanding_01/BP_Las_SignStanding_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Slot Machine Stand 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_SlotMachineStand_02/BP_FSM_Las_SlotMachineStand_02_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Slot Machine Stand 02 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_SlotMachineStand_02/BP_FSM_Las_SlotMachineStand_02_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Utility Pole 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_UtiliyPole_01/BP_FSM_Las_UtilityPole_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Utility Pole 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_UtiliyPole_01/BP_FSM_Las_UtilityPole_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Utility Pole 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_UtiliyPole_01/BP_FSM_Las_UtilityPole_01_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Las Vegas",
+"name": "Utility Pole 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/LasVegas/Las_UtiliyPole_01/BP_FSM_Las_UtilityPole_01_D",
+"kind": "breakable"
+},
+{
+"category": "Props: Misc",
+"name": "Barrel Wood 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/BarrelWood_01/BP_BarrelWood_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Boxes Cardboard 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/BoxesCardboard_01/BP_BoxesCardboard_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Boxes Cardboard 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/BoxesCardboard_01/BP_BoxesCardboard_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Boxes Cardboard 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/BoxesCardboard_01/BP_BoxesCardboard_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Boxes Cardboard 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/BoxesCardboard_01/BP_BoxesCardboard_01_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Boxes Cardboard 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/BoxesCardboard_01/BP_BoxesCardboard_01_E",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Boxes Cardboard 01 F",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/BoxesCardboard_01/BP_BoxesCardboard_01_F",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Cleaning Kit 01 Mop A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/CleaningKit_01/BP_CleaningKit_01_Mop_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Cleaning Kit 01 Wetfloor Sign A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/CleaningKit_01/BP_CleaningKit_01_WetfloorSign_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Drying Rack 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/DryingRack_01/BP_DryingRack_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Misc",
+"name": "Drying Rack 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/DryingRack_01/BP_DryingRack_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Misc",
+"name": "Drying Rack 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/DryingRack_02/BP_DryingRack_02_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Misc",
+"name": "Drying Rack 02 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/DryingRack_02/BP_DryingRack_02_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Misc",
+"name": "Fan Standing 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/FanStanding_01/BP_FanStanding_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Fan Standing 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/FanStanding_02/BP_FanStanding_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Hay 01 Bale A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/Hay_01/BP_Hay_01_Bale_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Market Stall 01 Box A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/MarketStall_01/BP_MarketStall_01_Box_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Misc",
+"name": "Room Divider 01 X 300 A Test",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/RoomDivider_01/BP_RoomDivider_01_x300_A_Test",
+"kind": "breakable"
+},
+{
+"category": "Props: Misc",
+"name": "Stick Pile 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Misc/StickPile_01/BP_StickPile_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Bin 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Bin_01/BP_Mon_Bin_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Bin 02",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Bin_02/BP_Mon_Bin_02",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Binoculars 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Binoculars_01/BP_Mon_Binoculars_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk 04 Railing A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalk_04_Railing_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk 04 Railing B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalk_04_Railing_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk 04 Railing C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalk_04_Railing_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk 04 X 300 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalk_04_x300_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk 04 X 400 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalk_04_x400_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk Pillar 04 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalkPillar_04_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk Pillar 04 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalkPillar_04_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk Pillar 04 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalkPillar_04_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk Wall 04 X 300 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalkWall_04_x300_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk Wall 04 X 300 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalkWall_04_x300_C",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk Wall 04 X 300 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalkWall_04_x300_D",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk Wall 04 X 300 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalkWall_04_x300_E",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Side Walk Wall 04 X 600 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_04/BP_FSM_Mon_FenceSideWalkWall_04_x600_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Wall 03 X 150 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_03/BP_FSM_Mon_FenceWall_03_x150_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Wall 03 X 300 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_03/BP_FSM_Mon_FenceWall_03_x300_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Fence Wall Pillar 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_FenceSideWalk_03/BP_FSM_Mon_FenceWallPillar_03_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Gazebo 01 Arch A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Gazebo_01/BP_FSM_Mon_Gazebo_01_Arch_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Gazebo 01 Fence A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Gazebo_01/BP_FSM_Mon_Gazebo_01_Fence_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Gazebo 01 Pillar A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Gazebo_01/BP_FSM_Mon_Gazebo_01_Pillar_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Gazebo 01 Roof A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Gazebo_01/BP_FSM_Mon_Gazebo_01_Roof_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Painting 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Painting_01/BP_Mon_Painting_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Painting 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Painting_02/BP_Mon_Painting_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 01",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_01/BP_Mon_PotFlower_01",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_01/BP_Mon_PotFlower_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_01/BP_Mon_PotFlower_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_01/BP_Mon_PotFlower_01_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_01/BP_Mon_PotFlower_01_E",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 01 F",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_01/BP_Mon_PotFlower_01_F",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 01 G",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_01/BP_Mon_PotFlower_01_G",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_03/BP_Mon_PotFlower_03_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 03 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_03/BP_Mon_PotFlower_03_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 03 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_03/BP_Mon_PotFlower_03_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 03 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_03/BP_Mon_PotFlower_03_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 04 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_04/BP_Mon_PotFlower_04_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 04 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_04/BP_Mon_PotFlower_04_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Pot Flower 04 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_PotFlower_04/BP_Mon_PotFlower_04_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Monaco",
+"name": "Sign 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_Sign_01/BP_Mon_Sign_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Monaco",
+"name": "Sign Hotel 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Monaco/Mon_SignHotel_01/BP_FSM_SignHotel_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Signs",
+"name": "Sign Branding 01 ISEULT Logo A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Signs/SignBranding_01/BP_FSM_SignBranding_01_ISEULTLogo_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Signs",
+"name": "Sign Menu 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Signs/SignMenu_01/BP_SignMenu_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Bin 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Bin_01/BP_Spa_Bin_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Chair 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Chair_01/BP_Spa_Chair_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Chair 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Chair_02/BP_Spa_Chair_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Chair 03 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Chair_03/BP_Spa_Chair_03_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Chair 06 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Chair_06/BP_Spa_Chair_06_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Chair 07 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Chair_07/BP_Spa_Chair_07_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Mailbox 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Mailbox_01/BP_Spa_Mailbox_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Space",
+"name": "Monitor 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Monitor_01/BP_Spa_Monitor_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Pot Set 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_PotSet_01/BP_Spa_PotSet_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Pot Set 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_PotSet_01/BP_Spa_PotSet_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Pot Set 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_PotSet_01/BP_Spa_PotSet_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Radio 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Radio_01/BP_Spa_Radio_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Radio 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_Radio_02/BP_Spa_Radio_02_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Sign Map 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_SignMap_01/BP_Spa_SignMap_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Space",
+"name": "Sign Map 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_SignMap_01/BP_Spa_SignMap_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Space",
+"name": "Sports Backwall 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_SportsBackwall_01/BP_Spa_SportsBackwall_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Space",
+"name": "Sports Backwall 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_SportsBackwall_01/BP_Spa_SportsBackwall_01_B",
+"kind": "breakable"
+},
+{
+"category": "Props: Space",
+"name": "Sports Ball 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_SportsBall_01/BP_Spa_SportsBall_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Sports Towel 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_SportsTowel_01/BP_Spa_SportsTowel_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Sports Towel 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_SportsTowel_01/BP_Spa_SportsTowel_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Sports Towel 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_SportsTowel_01/BP_Spa_SportsTowel_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Space",
+"name": "Trash Bin 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Locations/Space/Spa_TrashBin_01/BP_Spa_TrashBin_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Barrel Plastic 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/BarrelPlastic_01/BP_BarrelPlastic_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Cone 02 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/Cone_02/BP_Cone_02_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Street",
+"name": "Dumpster 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/Dumpster_01/BP_FSM_Dumpster_01_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 E",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_E",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 F",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_F",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 G",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_G",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 H",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_H",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 I",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_I",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 J",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_J",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 K",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_K",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 L",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_L",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 M",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_M",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 N",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_N",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 O",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_O",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 P",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_P",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 Q",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_Q",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 R",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_R",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 S",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_S",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 T",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_T",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 U",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_U",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 V",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_V",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Pot Set 01 W",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/PotSet_01/BP_PotSet_01_W",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Railing Guard 01 X 400 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/RailingGuard_01/BP_RailingGuard_01_X400_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Street",
+"name": "Railing Guard 01 X 800 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/RailingGuard_01/BP_RailingGuard_01_X800_A",
+"kind": "breakable"
+},
+{
+"category": "Props: Street",
+"name": "Traffic Cone 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/TrafficCone_01/BP_TrafficCone_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Trash Bag 01 A",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/TrashBag_01/BP_TrashBag_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Trash Bag 01 B",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/TrashBag_01/BP_TrashBag_01_B",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Trash Bag 01 C",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/TrashBag_01/BP_TrashBag_01_C",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Trash Bag 01 D",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/TrashBag_01/BP_TrashBag_01_D",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Trash Bin 01 A (Trash Bin 01)",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/TrashBin_01/BP_Hon_TrashBin_01_A",
+"kind": "liftable"
+},
+{
+"category": "Props: Street",
+"name": "Trash Bin 01 A (Trash Bin 01)",
+"path": "Discovery/Content/Discovery/Environment/Props/Generic/Street/TrashBin_01/BP_TrashBin_01_A",
+"kind": "liftable"
+}
+]
+}

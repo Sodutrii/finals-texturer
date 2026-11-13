@@ -86,6 +86,9 @@ class Ctx:
         if key in self._tex:
             return self._tex[key]
         path = self.finder.find_texture(object_path)
+        if path and not data and not self._is_srgb(object_path):
+            # stored linear (SRGB false, e.g. the Cashout vault's colour texture): the game reads it raw
+            data = True
         baked = None if path else self.atlas_image(object_path)
         if not path and baked is None:
             self._warn_missing(asset_name(object_path), object_path)
@@ -100,6 +103,15 @@ class Ctx:
         self.nb.feed(n.inputs["Vector"], vector if vector is not None else self.uv(scale, detail))
         self._tex[key] = n
         return n
+
+    def _is_srgb(self, object_path):
+        """The texture's SRGB flag from its JSON (UE default: true)."""
+        meta = self.finder.load_asset_json(object_path)
+        for e in meta if isinstance(meta, list) else []:
+            props = (e or {}).get("Properties") or {}
+            if "SRGB" in props:
+                return bool(props["SRGB"])
+        return True
 
     def atlas_image(self, object_path):
         """A curve atlas (CA_*, no image file) baked from its curves, or None.

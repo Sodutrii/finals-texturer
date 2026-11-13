@@ -4,6 +4,8 @@ UV0 / UV1 / UV2 per texel, coverage, and base colour / roughness / metallic.
 Weapon:   blender --factory-startup -b --python bake_ours.py -- <exports root> <weapon folder> <skin id suffix|DEFAULT> <out dir> [res]
 Clothing: blender --factory-startup -b --python bake_ours.py -- <exports root> --item <mesh .psk path, relative to the
           exports root> <skin name|AUTO|NONE> <out dir> [res]
+Object:   blender --factory-startup -b --python bake_ours.py -- <exports root> --object <Objects-tab path (Exports-relative,
+          no extension)> - <out dir> [res]   (imports the object like the Objects tab)
 Face:     blender --factory-startup -b --python bake_ours.py -- <exports root> --face <DA_Head_* file name> <L|M|H> <out dir> [res]
           (imports body + head like the Character tab, male, not muscular)
 Writes <out dir>/<object>__<slot>.npz per material slot with uv0, uv1, uv2 (UE convention: v = 0 at the top),
@@ -21,7 +23,8 @@ args = sys.argv[sys.argv.index("--") + 1:]
 EXP = args[0]
 ITEM = args[1] == "--item"
 FACE = args[1] == "--face"
-if ITEM or FACE:
+OBJECT = args[1] == "--object"
+if ITEM or FACE or OBJECT:
     MESH, SKEY, OUT = args[2:5]
     RES = int(args[5]) if len(args) > 5 else 256
 else:
@@ -32,14 +35,18 @@ sys.path.insert(0, ROOT)
 importlib.import_module("add-on-io-scene-psk-psa-v9_1_2").register()
 import finals_texturer  # noqa: E402
 finals_texturer.register()
-from finals_texturer import character, importer, weapons  # noqa: E402
+from finals_texturer import character, importer, objects_tab, weapons  # noqa: E402
 from finals_texturer.ue_assets import Log, find_skins  # noqa: E402
 
 os.makedirs(OUT, exist_ok=True)
 for o in list(bpy.data.objects):
     bpy.data.objects.remove(o)
 log = Log()
-if FACE:
+if OBJECT:
+    objects_tab._ctx["root"] = lambda c: EXP
+    obj = next(o for o in objects_tab.objects() if o["path"] == MESH)
+    objs = objects_tab.import_object(bpy.context, obj, log)
+elif FACE:
     character._ctx["root"] = lambda c: EXP
     face = next(f for f in character.faces(EXP) if os.path.basename(f["path"])[:-5] == MESH)
     objs = character.import_character(bpy.context, face, SKEY, "male", False, log)
@@ -114,6 +121,14 @@ def uv_src(mat, names, k):
     return n.outputs["UV"]
 
 
+def vcol_src(mat, obj):
+    if not obj.data.color_attributes:
+        return (1.0, 1.0, 1.0, 1.0)
+    n = mat.node_tree.nodes.new("ShaderNodeVertexColor")
+    n.layer_name = obj.data.color_attributes[0].name
+    return n.outputs["Color"]
+
+
 def bake_slot(src_obj, mat, slot_indices, name, uv_names):
     """Bake one material on a temporary copy of the object holding only that material's faces (parts of a
     mesh often share UV space, e.g. a head's face, lashes and teeth)."""
@@ -153,6 +168,10 @@ def bake_slot(src_obj, mat, slot_indices, name, uv_names):
         uvs.append(bake(obj, {mat: s}, f"uv{k}"))
         if isinstance(s, bpy.types.NodeSocket):
             mat.node_tree.nodes.remove(s.node)
+    vs = vcol_src(mat, obj)
+    vcol = bake(obj, {mat: vs}, "vcol")
+    if isinstance(vs, bpy.types.NodeSocket):
+        mat.node_tree.nodes.remove(vs.node)
     base = bake(obj, {mat: bsdf_src(mat, "Base Color")}, "base")
     rough = bake(obj, {mat: bsdf_src(mat, "Roughness")}, "rough")
     metal = bake(obj, {mat: bsdf_src(mat, "Metallic")}, "metal")
@@ -162,7 +181,7 @@ def bake_slot(src_obj, mat, slot_indices, name, uv_names):
                         uv0=np.stack([uvs[0][..., 0], 1.0 - uvs[0][..., 1]], -1),
                         uv1=np.stack([uvs[1][..., 0], 1.0 - uvs[1][..., 1]], -1),
                         uv2=np.stack([uvs[2][..., 0], 1.0 - uvs[2][..., 1]], -1),
-                        mask=cov[..., 0] > 0.5, base=base[..., :3], rough=rough[..., 0], metal=metal[..., 0],
+                        mask=cov[..., 0] > 0.5, vcol=vcol[..., :4], base=base[..., :3], rough=rough[..., 0], metal=metal[..., 0],
                         mi=mat.get("ft_material", mat.name), kind=mat.get("ft_shader", ""))
     bpy.data.objects.remove(obj)
 

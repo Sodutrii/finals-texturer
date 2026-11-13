@@ -176,6 +176,11 @@ class AssetFinder:
                 return p
         return ""
 
+    def has_texture(self, object_path):
+        """True if the texture is exported in any form: PNG/TGA, or .hdr (texture cubes such as the
+        weapons' fake reflection maps, which FModel / the helper write as lat-long HDR images)."""
+        return bool(self.find_texture(object_path) or self.find(object_path, ".hdr"))
+
     def find_array_slice(self, object_path, index):
         """Texture2DArray slice: FModel writes <name>_LAYER<n>.png."""
         name = asset_name(object_path)

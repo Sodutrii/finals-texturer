@@ -18,8 +18,11 @@ options and the Oodle / zlib / Detex libraries come from **FModel's own setup**
 
 ```
 ft_exporter check
-ft_exporter export --out <Exports folder> [--force] <path>...
+ft_exporter export --out <Exports folder> [--force] [--only] <path>...
 ```
+
+`--only` writes just the listed textures / meshes (no JSON, siblings or references): the store-image
+browser fetches `T_UI_*` images into the add-on's cache with it.
 
 Paths: `/Game/...` or `Discovery/Content/...` (extension optional); `<folder>/*` = that folder's own files,
 `<folder>` = everything under it. Existing meshes/textures and full JSONs are kept unless `--force`; JSONs

@@ -14,6 +14,12 @@ from .clothing import (build_attachment, build_feather, build_glass, build_holog
 from .character import (build_eye, build_eyelash, build_face, build_glitter, build_hair_cards, build_hidden,
                         build_skin, build_teeth)
 from .weapon import build_weapon, build_weapon_fx, build_weapon_preset, build_weapon_text
+from .weapon_rank import build_weapon_crystal, build_weapon_fresnel
+from .objects import (build_atk_4materials, build_atk_button, build_atk_canister, build_cashout_prop,
+                      build_character_totem, build_decal_branding, build_object_glass, build_progress_light,
+                      build_props01, build_props_cloth, build_flag, build_vegetation,
+                      build_tree_trunk, build_trims, build_spline_cable, build_decal_pom_masked,
+                      build_2layer_blend, build_decal_grunge)
 
 BUILDERS = {
     defaults.LAYERED: lambda ctx: build_layered(ctx, old_gen=False),
@@ -39,6 +45,26 @@ BUILDERS = {
     defaults.WEAPON_FX: build_weapon_fx,
     defaults.HAIR: build_hair_cards,
     defaults.GLITTER: build_glitter,
+    defaults.WEAPON_FRESNEL: build_weapon_fresnel,
+    defaults.WEAPON_CRYSTAL: build_weapon_crystal,
+    defaults.OBJ_CANISTER: build_atk_canister,
+    defaults.OBJ_CASHOUT: build_cashout_prop,
+    defaults.OBJ_PROGRESS: build_progress_light,
+    defaults.OBJ_TOTEM: build_character_totem,
+    defaults.OBJ_GLASS: build_object_glass,
+    defaults.OBJ_ATK: build_atk_4materials,
+    defaults.OBJ_DECAL: build_decal_branding,
+    defaults.OBJ_BUTTON: build_atk_button,
+    defaults.OBJ_PROPS: build_props01,
+    defaults.OBJ_CLOTH: build_props_cloth,
+    defaults.OBJ_FLAG: build_flag,
+    defaults.OBJ_VEG: build_vegetation,
+    defaults.OBJ_TRUNK: build_tree_trunk,
+    defaults.OBJ_TRIMS: build_trims,
+    defaults.OBJ_CABLE: build_spline_cable,
+    defaults.OBJ_POM_DECAL: build_decal_pom_masked,
+    defaults.OBJ_2LAYER: build_2layer_blend,
+    defaults.OBJ_GRUNGE: build_decal_grunge,
     defaults.GENERIC: build_generic,
 }
 

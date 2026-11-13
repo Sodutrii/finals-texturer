@@ -229,7 +229,7 @@ def status(root, face, cls):
                 flat_f.append(os.path.relpath(os.path.dirname(flat), root).replace("\\", "/")
                               .split("Content/Discovery/", 1)[-1])
             for tex in texs:
-                if not finder.find_texture(tex):
+                if not finder.has_texture(tex):
                     tex_missing += 1
                     tex_f.append(_folder(tex))
     groups = ui.split_folders(mesh_f, tex_f, flat_f)
@@ -607,6 +607,17 @@ def _find(context, query):
     return out[:80]
 
 
+def _image(context, ident):
+    """(local PNG, game path) of a search result's store image (browse.py)."""
+    root = _root(context)
+    f = next((f for f in faces(root) if f["id"] == ident), None)
+    if f is None:
+        return "", ""
+    local = store_image(f)
+    folder = os.path.dirname(f["id"].replace("\\", "/"))
+    return local, f"{folder}/T_UI_*"
+
+
 def _pick(context, ident):
     try:
         context.scene.ft_char_face = ident
@@ -669,7 +680,7 @@ def register(root_getter, report):
         items=(("MALE", "Male", "Masculine body shape"), ("FEMALE", "Female", "Feminine body shape")))
     bpy.types.Scene.ft_char_muscular = BoolProperty(
         name="Muscular", description="Muscular body shape (Heavy class only)")
-    search.add_tab("char", _find, _pick, "Face name or number")
+    search.add_tab("char", _find, _pick, "Face name or number", image=_image)
 
 
 def unregister():

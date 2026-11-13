@@ -2,14 +2,16 @@
 //
 //   ft_exporter check
 //       FModel setup found? (JSON on stdout; never prints the key)
-//   ft_exporter export --out <Exports folder> [--force] <game path>...
+//   ft_exporter export --out <Exports folder> [--force] [--only] <game path>...
 //       Exports each package, every package next to it (store image, metadata, persistence) and everything
 //       they reference that the add-on uses (meshes, materials up to the master, textures, curve atlases,
 //       data assets), into <out> with FModel's folder layout: properties as .json ("Save Properties"),
 //       meshes as .psk/.pskx, textures as .png (texture arrays: _LAYER<n>.png).
 //       Game paths: /Game/... or Discovery/Content/... (with or without extension); a folder exports
-//       everything under it. Existing meshes/textures and full JSONs are kept (--force rewrites them);
+//       everything under it, <folder>/* its own files, <folder>/<prefix>* its files starting with <prefix>. Existing meshes/textures and full JSONs are kept (--force rewrites them);
 //       JSONs flattened by FModel's mesh export are replaced.
+//       --only: just the listed files' textures / meshes (no .json, nothing next to or referenced by them);
+//       the add-on's store-image browser uses it to fetch T_UI_* images into its own cache.
 //
 // Output: one JSON object per line on stdout ({"event": ...}), for the add-on's progress bar.
 using System.Text.RegularExpressions;
@@ -46,6 +48,7 @@ static class Program
             {
                 "check" => Check(setup),
                 "export" => Export(setup, args.Skip(1).ToArray()),
+                "list" => List(setup, args.Skip(1).ToArray()),
                 _ => Fail($"unknown command {args[0]}"),
             };
         }
@@ -56,7 +59,7 @@ static class Program
     }
 
     static void Usage() =>
-        Console.Error.WriteLine("usage: ft_exporter check | export --out <dir> [--force] <game path>...");
+        Console.Error.WriteLine("usage: ft_exporter check | export --out <dir> [--force] [--only] <game path>...");
 
     static string? Opt(ref string[] args, string name)
     {
@@ -115,12 +118,37 @@ static class Program
         return provider;
     }
 
+    // list <prefix> [--depth n]: package paths under a game folder (one per line, as JSON events), or with
+    // --depth the sub-folders and how many packages each holds
+    static int List(Setup s, string[] args)
+    {
+        var a = args.ToArray();
+        int depth = int.TryParse(Opt(ref a, "--depth"), out var d) ? d : 0;
+        var prefix = (a.FirstOrDefault() ?? "").Trim('/');
+        var provider = Mount(s);
+        var files = provider.Files.Values.Where(f => f.Extension is "uasset" or "umap"
+            && f.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).Select(f => f.Path).ToList();
+        if (depth == 0)
+        {
+            foreach (var f in files.OrderBy(x => x)) Emit(new { @event = "file", path = f });
+        }
+        else
+        {
+            int skip = prefix.Length == 0 ? 0 : prefix.Split('/').Length;
+            foreach (var g in files.GroupBy(f => string.Join('/', f.Split('/').Skip(skip).Take(depth)))
+                         .OrderBy(g => g.Key))
+                Emit(new { @event = "folder", path = g.Key, count = g.Count() });
+        }
+        return 0;
+    }
+
     static int Export(Setup s, string[] args)
     {
         var a = args.ToArray();
         var outDir = Opt(ref a, "--out") ?? throw new Exception("--out <folder> is required");
         bool force = a.Contains("--force");
-        var paths = a.Where(x => x != "--force").ToList();
+        bool only = a.Contains("--only");
+        var paths = a.Where(x => x != "--force" && x != "--only").ToList();
         if (paths.Count == 0) throw new Exception("nothing to export");
 
         Emit(new { @event = "status", message = "Opening the game files..." });
@@ -134,7 +162,7 @@ static class Program
             exportMaterials: false,
             exportMorphTargets: s.MorphTargets,
             socketFormat: (ESocketFormat)s.SocketFormat);
-        var job = new Job(provider, outDir, force, options);
+        var job = new Job(provider, outDir, force, options) { Only = only };
         foreach (var p in paths) job.AddStart(p);
         job.Run();
         return job.Failed > 0 && job.Written == 0 ? 1 : 0;
@@ -150,11 +178,14 @@ sealed class Job
     readonly Queue<(GameFile File, int Depth)> _queue = new();
     readonly HashSet<string> _seen = new(StringComparer.OrdinalIgnoreCase);
     readonly HashSet<string> _roots = new(StringComparer.OrdinalIgnoreCase);         // e.g. …/Discovery/Items
+    readonly HashSet<string> _fromBlueprint = new(StringComparer.OrdinalIgnoreCase);
+    readonly HashSet<string> _bpParents = new(StringComparer.OrdinalIgnoreCase);
     readonly HashSet<string> _texturesOnly = new(StringComparer.OrdinalIgnoreCase);   // reached from a master
     readonly List<(UObject Obj, GameFile File)> _assets = new();
     readonly JsonSerializerSettings _json = new()
         { Formatting = Formatting.Indented, ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
     public int Written, Skipped, Failed;
+    public bool Only;                 // just the start files themselves: no JSON, no siblings, no references
 
     static readonly Regex RefRx = new("\"(?:ObjectPath|AssetPathName)\"\\s*:\\s*\"(/[^\"]+)\"", RegexOptions.Compiled);
 
@@ -225,6 +256,22 @@ sealed class Job
             foreach (var f in own) Enqueue(f, 0);
             return;
         }
+        int slash = norm.LastIndexOf('/');
+        if (norm.EndsWith("*") && slash >= 0 && slash < norm.Length - 2)
+        {
+            // "<folder>/<name prefix>*": that folder's files whose name starts with the prefix
+            // (faces: <face folder>/T_UI_* = its store image, whose exact name isn't recorded anywhere)
+            var d = norm[..slash];
+            var stem = norm[(slash + 1)..^1];
+            if (d.StartsWith("/")) d = _p.FixPath(d + "/x").TrimEnd('x', '/');
+            var hits = _p.Files.Values.Where(f => f.Extension == "uasset"
+                && f.Path.StartsWith(d + "/", StringComparison.OrdinalIgnoreCase)
+                && f.Path.IndexOf('/', d.Length + 1) < 0
+                && f.NameWithoutExtension.StartsWith(stem, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (hits.Count == 0) Program.Emit(new { @event = "warning", message = $"{path} isn't in the game files" });
+            foreach (var f in hits) Enqueue(f, 0);
+            return;
+        }
         var file = Find(path);
         if (file == null)
         {
@@ -238,7 +285,10 @@ sealed class Job
             return;
         }
         Enqueue(file, 0);
-        // the files next to it: store image (T_UI_*), DA_MetaData_* (names), persistence…
+        if (Only) return;
+        // a skin / face: the files next to it (store image T_UI_*, DA_MetaData_* names, persistence…);
+        // a Blueprint (game object) has nothing of that kind
+        if (file.NameWithoutExtension.StartsWith("BP_", StringComparison.OrdinalIgnoreCase)) return;
         var dir = file.Path[..file.Path.LastIndexOf('/')];
         foreach (var f in _p.Files.Values.Where(f => f.Extension == "uasset"
                      && f.Path.StartsWith(dir + "/", StringComparison.OrdinalIgnoreCase)
@@ -261,10 +311,11 @@ sealed class Job
         if (_seen.Add(f.Path)) _queue.Enqueue((f, depth));
     }
 
-    enum Kind { Skip, Mesh, Texture, Material, Master, Curve, Data }
+    enum Kind { Skip, Mesh, Texture, Material, Master, Curve, Data, Blueprint }
 
     static Kind Classify(string cls)
     {
+        if (cls.EndsWith("BlueprintGeneratedClass")) return Kind.Blueprint;
         if (cls is "SkeletalMesh" or "StaticMesh") return Kind.Mesh;
         if (cls is "MaterialInstanceConstant" or "MaterialInstanceDynamic") return Kind.Material;
         if (cls == "Material") return Kind.Master;
@@ -292,13 +343,24 @@ sealed class Job
             List<UObject> exports;
             try { exports = pkg.GetExports().ToList(); }
             catch (Exception e) { Fail(file.Path, e); continue; }
-            var main = exports.FirstOrDefault(e => e.Name == file.NameWithoutExtension) ?? exports.FirstOrDefault();
+            var main = exports.FirstOrDefault(e => e.Name == file.NameWithoutExtension)
+                       ?? exports.FirstOrDefault(e => e.Name == file.NameWithoutExtension + "_C")
+                       ?? exports.FirstOrDefault();
             if (main == null) continue;
             var kind = Classify(main.ExportType);
             if (kind == Kind.Skip && depth > 0) continue;
+            // a Blueprint's references: its parts (meshes, materials, textures) and its parent Blueprint
+            // (inherited parts), not the gameplay classes, sounds, effects… it also points at
+            if (_fromBlueprint.Contains(file.Path) && !_bpParents.Contains(file.Path)
+                && kind is Kind.Blueprint or Kind.Data or Kind.Skip) continue;
             // masters reference textures, but also functions, parameter collections…: keep the textures
             if (_texturesOnly.Contains(file.Path) && kind is not (Kind.Texture or Kind.Curve)) continue;
 
+            if (Only)
+            {
+                if (kind is Kind.Mesh or Kind.Texture) _assets.Add((main, file));
+                continue;
+            }
             string json;
             try { json = JsonConvert.SerializeObject(exports, _json); }
             catch (Exception e) { Fail(file.Path, e); continue; }
@@ -309,6 +371,9 @@ sealed class Job
             if (kind == Kind.Skip) continue;
             if (kind == Kind.Data && depth >= MaxDataDepth) continue;
 
+            if (kind == Kind.Blueprint && main is CUE4Parse.UE4.Objects.UObject.UStruct st
+                && st.SuperStruct?.ResolvedObject?.GetPathName() is { } super && Find(super) is { } pf)
+                _bpParents.Add(pf.Path);
             foreach (Match m in RefRx.Matches(json))
             {
                 var r = m.Groups[1].Value;
@@ -316,6 +381,7 @@ sealed class Job
                 var f = Find(r);
                 if (f == null || _seen.Contains(f.Path)) continue;
                 if (kind == Kind.Master) _texturesOnly.Add(f.Path);
+                if (kind == Kind.Blueprint) _fromBlueprint.Add(f.Path);
                 if (kind == Kind.Data && f.NameWithoutExtension.StartsWith("DA_", StringComparison.OrdinalIgnoreCase)
                     && !_roots.Contains(Root(f.Path))) continue;
                 Enqueue(f, kind == Kind.Data ? depth + 1 : depth);

@@ -38,7 +38,8 @@ def main():
         mi_json = ev.finder.find("", ".json", stem=mi)
         m = d["mask"]
         try:
-            res = ev.run(mi_json, d["uv0"][m], d["uv1"][m], d["uv2"][m] if "uv2" in d else None)
+            res = ev.run(mi_json, d["uv0"][m], d["uv1"][m], d["uv2"][m] if "uv2" in d else None,
+                         vcol=d["vcol"][m] if "vcol" in d else None)
         except RuntimeError as e:
             print(f"{os.path.basename(f)} ({mi}): skipped, {e}")
             continue

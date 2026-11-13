@@ -262,7 +262,12 @@ def import_psk(filepath, log):
         raise RuntimeError(missing)
     before = set(bpy.data.objects)
     try:
-        res = bpy.ops.psk.import_file(filepath=filepath)
+        try:
+            # raw vertex colours (value / 255), as Unreal hands them to shaders (blend masks of
+            # the props' 2-layer material); the importer's default re-encodes them as sRGB
+            res = bpy.ops.psk.import_file(filepath=filepath, vertex_color_space="LINEAR")
+        except TypeError:
+            res = bpy.ops.psk.import_file(filepath=filepath)
     except AttributeError:
         raise RuntimeError(missing)
     if "FINISHED" not in res:
@@ -297,13 +302,19 @@ def _match_slot(slots, psk_name, index):
     return "", ""
 
 
-def apply_to_object(obj, root, skin_choice, log, tags=None):
+def apply_to_object(obj, root, skin_choice, log, tags=None, slot_overrides=None):
     """tags: TagOverrides to apply (see read_skin); None = the ones the object
-    was imported with (stored by the Character tab)."""
+    was imported with (stored by the Character tab). slot_overrides: {slot
+    index: material object path} that win over everything (a Blueprint's
+    OverrideMaterials); stored on the object so re-applying keeps them."""
     if obj.type != "MESH":
         return 0
     if tags is None:
         tags = tuple(obj.get("ft_skin_tags", ()))
+    if slot_overrides is None:
+        slot_overrides = {int(k): v for k, v in (obj.get("ft_slot_overrides") or {}).items()}
+    else:
+        obj["ft_slot_overrides"] = {str(k): v for k, v in slot_overrides.items()}
     mesh_dir = obj.get("ft_source_dir", "")
     mesh_name = obj.get("ft_source_mesh", "") or clean_name(obj.name)
     finder = make_finder(root, mesh_dir, log)
@@ -343,7 +354,9 @@ def apply_to_object(obj, root, skin_choice, log, tags=None):
         psk_name = psk_names[i] if i < len(psk_names) else (clean_name(mslot.material.name) if mslot.material else "")
         slot_name, base_path = _match_slot(slots, psk_name, i)
         target_path, target_json = base_path, None
-        if slot_name and slot_name.lower() in overrides_ci:
+        if i in slot_overrides:
+            target_path = slot_overrides[i]
+        elif slot_name and slot_name.lower() in overrides_ci:
             target_path = overrides_ci[slot_name.lower()]
         elif not target_path and psk_name:
             target_json = finder.find("", ".json", stem=psk_name)
@@ -361,7 +374,7 @@ def apply_to_object(obj, root, skin_choice, log, tags=None):
         if not params.chain:
             continue
         log.info(f"    {' > '.join(params.chain)}")
-        mat = bpy.data.materials.get(params.name) or bpy.data.materials.new(params.name)
+        mat = _material_for(params)
         uvs = obj.data.uv_layers
         detail_uv = uvs[1].name if len(uvs) > 1 else None
         kind = builders.build_material(mat, params, finder, log, detail_uv=detail_uv,
@@ -370,6 +383,24 @@ def apply_to_object(obj, root, skin_choice, log, tags=None):
         mslot.material = mat
         done += 1
     return done
+
+
+def _material_for(params):
+    """The Blender material for a game material: by name, but kept apart when two different game
+    files share a name (MI_ATK_BarrelOil_01 exists for the oil and the powder barrel): the second one
+    gets "<name> (<folder>)", so building one doesn't overwrite the other."""
+    src = os.path.normcase(os.path.normpath(params.source_files[0])) if params.source_files and params.source_files[0] else ""
+    mat = bpy.data.materials.get(params.name)
+    if mat is not None and src and mat.get("ft_source", src) != src:
+        mat = next((m for m in bpy.data.materials if m.get("ft_source") == src), None)
+        if mat is None:
+            folder = os.path.basename(os.path.dirname(src))
+            mat = bpy.data.materials.new(f"{params.name} ({folder})")
+    if mat is None:
+        mat = bpy.data.materials.new(params.name)
+    if src:
+        mat["ft_source"] = src
+    return mat
 
 
 def write_log(log):

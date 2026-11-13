@@ -275,7 +275,7 @@ class FT_OT_check_setup(bpy.types.Operator):
 
 
 CLASSES = (FT_OT_copy_text, FT_OT_check_setup, FT_OT_show_image)
-TABS = ("CHARACTER", "CLOTHING", "WEAPONS", "RIGGING")
+TABS = ("CHARACTER", "CLOTHING", "WEAPONS", "OBJECTS", "RIGGING")
 
 
 def register():

@@ -32,6 +32,14 @@ from .ue_assets import AssetFinder, Log, asset_name, export_of_type, ref_path, r
 ITEMS_REL = os.path.join("Discovery", "Content", "Discovery", "Items")
 CATEGORIES = ("Firearms", "Melee")
 SKIP_TAGS = {"Mesh.StickerSlot"}
+# Ranked reward skins (one set on every weapon): skin folder -> rank. Listed as "Rank: <rank>", grouped
+# after the default skin in this order. The game files carry no rank tag, only these folder names.
+RANK_FOLDERS = {"LeagueGold_02": "Gold", "LeaguePlatinum_02": "Platinum", "Diamond_02": "Diamond",
+                "LeagueRuby_02": "Ruby", "LeagueEmerald_02": "Emerald"}
+RANK_ORDER = list(RANK_FOLDERS.values())
+# Items filed under Firearms that the game treats as gadgets (H+ Infuser = SMGs/SMG_Friendly_01) have a
+# DA_Persistence_Gadget_* file in their folder; they belong in a future gadgets tab, not here.
+GADGET_MARK = "DA_Persistence_Gadget_"
 DEFAULT_PART_TAGS = {"Customization.Item.Attachment.Sight.IronSights_01"}
 DEFAULT_SKIN = "DEFAULT"
 READY_ICON = {2: "CHECKMARK", 1: "INFO", 0: "ERROR"}
@@ -99,6 +107,9 @@ def weapons(root):
                          and not f.startswith("DA_Item_Animation")), None)
             if not item:
                 continue
+            if any(f.startswith(GADGET_MARK) for f in files):
+                dirs[:] = []
+                continue
             folder = os.path.basename(dirpath)
             data = _load(os.path.join(dirpath, f"DA_UIMetaData_{folder}.json"))
             props = next(((e.get("Properties") or {}) for e in (data if isinstance(data, list) else [])
@@ -155,6 +166,7 @@ def skins(root, weapon):
     if not os.path.isdir(weapon["dir"]):
         out = [{"id": s["id"], "path": os.path.join(root, s["path"]) if s["path"] else "", "name": s["name"],
                 "image": s["image"], "variant": s["variant"]} for s in shipped.values()]
+        _rank_names(out)
         _skins[key] = out
         return out
     sdir = os.path.join(weapon["dir"], "Skins")
@@ -195,9 +207,33 @@ def skins(root, weapon):
         if sid not in have and sid != DEFAULT_SKIN:
             out.append({"id": sid, "path": os.path.join(root, s["path"]) if s["path"] else "", "name": s["name"],
                         "image": s["image"], "variant": s["variant"]})
-    out[1:] = sorted(out[1:], key=lambda s: s["name"].lower())
+    _rank_names(out)
     _skins[key] = out
     return out
+
+
+def skin_rank(skin):
+    """"Gold" … "Emerald" for the ranked reward skins (by skin folder), else ""."""
+    parts = (skin.get("id") or "").replace("\\", "/").split("/")
+    if "Skins" in parts and parts.index("Skins") + 1 < len(parts):
+        return RANK_FOLDERS.get(parts[parts.index("Skins") + 1], "")
+    return ""
+
+
+def _rank_names(out):
+    """Rename the ranked reward skins "Rank: <rank>" and group them after the default (out[0])."""
+    for s in out[1:]:
+        rank = skin_rank(s)
+        if rank:
+            s["name"] = f"Rank: {rank}" + (f" ({s['variant']})" if s["variant"] not in ("", "A") else "")
+    out[1:] = sorted(out[1:], key=_skin_sort)
+
+
+def _skin_sort(s):
+    rank = skin_rank(s)
+    if rank:
+        return (0, RANK_ORDER.index(rank), s["name"].lower())
+    return (1, 0, s["name"].lower())
 
 
 def skin_by_id(root, weapon, sid):
@@ -323,7 +359,7 @@ def status(root, weapon, skin):
             for t in params.textures.values():
                 if not t or any(d in t for d in PLACEHOLDER_DIRS) or asset_name(t).lower() in ("defaulttexture",):
                     continue
-                if not finder.find_texture(t) and not _is_atlas(finder, t):
+                if not finder.has_texture(t) and not _is_atlas(finder, t):
                     tex_missing += 1
                     tex_f.append(_folder(t))
     groups = ui.split_folders(mesh_f, tex_f, flat_f)
@@ -678,6 +714,21 @@ def _find(context, query):
     return out
 
 
+def _image(context, ident):
+    """(local PNG, game path) of a search result's store image (browse.py)."""
+    root = _root(context)
+    wid, sid = ident.split("|", 1)
+    w = weapon_by_id(root, wid)
+    if w is None:
+        return "", ""
+    ss = skins(root, w)
+    s = skin_by_id(root, w, sid) if sid else (ss[0] if ss else None)
+    img = (s or {}).get("image") or ""
+    if not img:
+        return "", ""
+    return (_game_path_to_file(root, img)[:-5] + ".png" if root else ""), img
+
+
 def _pick(context, ident):
     sc = context.scene
     wid, sid = ident.split("|", 1)
@@ -729,7 +780,7 @@ def register(root_getter, report):
     bpy.types.Scene.ft_weapon_skin = EnumProperty(
         name="Skin", items=_skin_items,
         description="Weapon skin. Check = exported, i = some textures missing, warning = a mesh isn't exported")
-    search.add_tab("weap", _find, _pick, "Weapon or skin name")
+    search.add_tab("weap", _find, _pick, "Weapon or skin name", image=_image)
 
 
 def unregister():
